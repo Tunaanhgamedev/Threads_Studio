@@ -28,8 +28,11 @@ export const App: React.FC = () => {
   const [modalVideoTitle, setModalVideoTitle] = useState('');
 
   // Initial load
+  const [loadError, setLoadError] = useState<string | null>(null);
+
   const loadProjects = async (selectId?: string) => {
     try {
+      setLoadError(null);
       const projs = await api.getProjects();
       setProjects(projs);
       if (projs.length > 0) {
@@ -42,9 +45,17 @@ export const App: React.FC = () => {
           const matched = projs.find(p => p.id === currentProject.id);
           setCurrentProject(matched || projs[0]);
         }
+      } else {
+        // Auto-create initial project if empty
+        try {
+          const created = await api.createProject('https://www.threads.net/share/Bp3XJQNdMh');
+          setProjects([created]);
+          setCurrentProject(created);
+        } catch {}
       }
-    } catch (err) {
+    } catch (err: any) {
       console.error('Failed to load projects:', err);
+      setLoadError(err.message || 'Không thể kết nối đến máy chủ API (Port 3210)');
     } finally {
       setIsLoading(false);
     }
@@ -124,15 +135,47 @@ export const App: React.FC = () => {
         />
 
         {/* View Switcher */}
-        {activeTab === 'studio' && currentProject && (
-          <StudioView
-            project={currentProject}
-            onUpdateProject={(p) => {
-              setCurrentProject(p);
-              setProjects(prev => prev.map(item => item.id === p.id ? p : item));
-            }}
-            onOpenResultsModal={handleOpenResults}
-          />
+        {activeTab === 'studio' && (
+          currentProject ? (
+            <StudioView
+              project={currentProject}
+              onUpdateProject={(p) => {
+                setCurrentProject(p);
+                setProjects(prev => prev.map(item => item.id === p.id ? p : item));
+              }}
+              onOpenResultsModal={handleOpenResults}
+            />
+          ) : (
+            <div className="flex-1 flex flex-col items-center justify-center bg-[#070d19] p-8 text-center text-slate-400">
+              <div className="max-w-md bg-[#0d1729] border border-[#1b2b48] rounded-2xl p-8 shadow-2xl space-y-4">
+                <div className="w-16 h-16 bg-blue-600/20 text-blue-400 rounded-2xl flex items-center justify-center mx-auto text-2xl font-bold">
+                  🧵
+                </div>
+                <h2 className="text-xl font-bold text-white">Chưa chọn dự án Threads nào</h2>
+                <p className="text-xs text-slate-400 leading-relaxed">
+                  {loadError ? (
+                    <span className="text-rose-400 font-medium">{loadError}</span>
+                  ) : (
+                    'Bắt đầu tạo video đầu tiên bằng cách dán đường dẫn bài viết Threads hoặc chọn từ danh sách.'
+                  )}
+                </p>
+                <div className="flex gap-2 justify-center">
+                  <button
+                    onClick={handleCreateNewProject}
+                    className="py-2.5 px-4 bg-blue-600 hover:bg-blue-500 text-white font-semibold rounded-xl text-xs transition shadow-lg shadow-blue-600/30"
+                  >
+                    + Tạo dự án mới
+                  </button>
+                  <button
+                    onClick={() => loadProjects()}
+                    className="py-2.5 px-4 bg-[#1a2c4e] hover:bg-[#253e6d] text-slate-200 font-semibold rounded-xl text-xs transition"
+                  >
+                    Tải lại
+                  </button>
+                </div>
+              </div>
+            </div>
+          )
         )}
 
         {activeTab === 'dashboard' && (

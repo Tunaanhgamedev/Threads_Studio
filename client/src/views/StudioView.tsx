@@ -40,33 +40,52 @@ export const StudioView: React.FC<StudioViewProps> = ({
   onUpdateProject,
   onOpenResultsModal
 }) => {
+  const defaultCardPos = {
+    x: 50.0,
+    y: 28.0,
+    scale: 105.0,
+    borderRadius: 16,
+    bgStyle: 'white' as const
+  };
+
+  const defaultSubVideoPos = {
+    enabled: true,
+    x: 50.0,
+    y: 65.0,
+    scale: 110.0,
+    borderRadius: 12,
+    folder: 'D:/TOOL/NGUỒN - NỀN - NHẠC/VIDEO PHỤ/T',
+    mute: true,
+    loop: true
+  };
+
   // Local active form state
-  const [threadsUrl, setThreadsUrl] = useState(project.threadsUrl);
-  const [maskAuthor, setMaskAuthor] = useState(project.config.maskAuthor);
-  const [reviewBeforeExport, setReviewBeforeExport] = useState(project.config.reviewBeforeExport);
-  const [previewVoice, setPreviewVoice] = useState(project.config.tts.previewVoice);
-  const [voiceSpeed, setVoiceSpeed] = useState(project.config.tts.speed);
+  const [threadsUrl, setThreadsUrl] = useState(project.threadsUrl || '');
+  const [maskAuthor, setMaskAuthor] = useState(project.config?.maskAuthor ?? false);
+  const [reviewBeforeExport, setReviewBeforeExport] = useState(project.config?.reviewBeforeExport ?? true);
+  const [previewVoice, setPreviewVoice] = useState(project.config?.tts?.previewVoice || 'VieNeu - Ngọc Huyền (Nữ miền Bắc)');
+  const [voiceSpeed, setVoiceSpeed] = useState(project.config?.tts?.speed ?? 1.20);
   const [isPlayingAudio, setIsPlayingAudio] = useState(false);
-  const [selectedVoices, setSelectedVoices] = useState<string[]>(project.config.tts.selectedVoices || []);
-  const [voiceMode, setVoiceMode] = useState(project.config.tts.randomVoiceMode);
-  const [commentCount, setCommentCount] = useState(project.config.commentCount || 5);
-  const [commentFilterMode, setCommentFilterMode] = useState(project.config.commentFilterMode);
+  const [selectedVoices, setSelectedVoices] = useState<string[]>(project.config?.tts?.selectedVoices || ['VieNeu - Ngọc Huyền (Nữ miền Bắc)']);
+  const [voiceMode, setVoiceMode] = useState(project.config?.tts?.randomVoiceMode || 'random');
+  const [commentCount, setCommentCount] = useState(project.config?.commentCount || 5);
+  const [commentFilterMode, setCommentFilterMode] = useState(project.config?.commentFilterMode || 'most_likes');
 
   // Folders & audio
-  const [bgVideoFolder, setBgVideoFolder] = useState(project.config.backgroundVideoFolder);
-  const [subVideoEnabled, setSubVideoEnabled] = useState(project.config.subVideoPosition.enabled);
-  const [subVideoFolder, setSubVideoFolder] = useState(project.config.subVideoPosition.folder);
-  const [bgMusicFolder, setBgMusicFolder] = useState(project.config.backgroundMusic.folder);
-  const [bgMusicVolume, setBgMusicVolume] = useState(project.config.backgroundMusic.volume);
+  const [bgVideoFolder, setBgVideoFolder] = useState(project.config?.backgroundVideoFolder || '');
+  const [subVideoEnabled, setSubVideoEnabled] = useState(project.config?.subVideoPosition?.enabled ?? true);
+  const [subVideoFolder, setSubVideoFolder] = useState(project.config?.subVideoPosition?.folder || '');
+  const [bgMusicFolder, setBgMusicFolder] = useState(project.config?.backgroundMusic?.folder || '');
+  const [bgMusicVolume, setBgMusicVolume] = useState(project.config?.backgroundMusic?.volume ?? 20);
 
   // Position & sizing tabs: 'card' | 'subVideo'
   const [positionTab, setPositionTab] = useState<'card' | 'subVideo'>('card');
-  const [cardPos, setCardPos] = useState(project.config.cardPosition);
-  const [subVideoPos, setSubVideoPos] = useState(project.config.subVideoPosition);
+  const [cardPos, setCardPos] = useState({ ...defaultCardPos, ...(project.config?.cardPosition || {}) });
+  const [subVideoPos, setSubVideoPos] = useState({ ...defaultSubVideoPos, ...(project.config?.subVideoPosition || {}) });
 
   // Preview selection: which comment to preview in canvas (-1 means original post)
   const [previewCommentIdx, setPreviewCommentIdx] = useState<number>(-1);
-  const [aspectRatio, setAspectRatio] = useState<'9:16' | '16:9' | '1:1'>(project.config.aspectRatio);
+  const [aspectRatio, setAspectRatio] = useState<'9:16' | '16:9' | '1:1'>(project.config?.aspectRatio || '9:16');
 
   // Live render state
   const [isRendering, setIsRendering] = useState(project.status === 'rendering');
@@ -78,7 +97,7 @@ export const StudioView: React.FC<StudioViewProps> = ({
   const [isLogsExpanded, setIsLogsExpanded] = useState(false);
   const [isFetchingUrl, setIsFetchingUrl] = useState(false);
   const [isEditingContent, setIsEditingContent] = useState(false);
-  const [postContent, setPostContent] = useState(project.post.content);
+  const [postContent, setPostContent] = useState(project.post?.content || '');
 
   // Phase 6 - Advanced Video Studio States
   const [showTimeline, setShowTimeline] = useState(true);
@@ -1225,14 +1244,14 @@ export const StudioView: React.FC<StudioViewProps> = ({
                   <div>
                     <div className="flex justify-between text-[11px] text-slate-400 mb-1">
                       <span>Tọa độ X</span>
-                      <span className="font-mono text-slate-200">{cardPos.x.toFixed(1)} %</span>
+                      <span className="font-mono text-slate-200">{(cardPos?.x ?? 50).toFixed(1)} %</span>
                     </div>
                     <input
                       type="range"
                       min="10"
                       max="90"
                       step="0.5"
-                      value={cardPos.x}
+                      value={cardPos?.x ?? 50}
                       onChange={(e) => setCardPos({ ...cardPos, x: parseFloat(e.target.value) })}
                       className="w-full cursor-pointer"
                     />
@@ -1241,14 +1260,14 @@ export const StudioView: React.FC<StudioViewProps> = ({
                   <div>
                     <div className="flex justify-between text-[11px] text-slate-400 mb-1">
                       <span>Tọa độ Y</span>
-                      <span className="font-mono text-slate-200">{cardPos.y.toFixed(1)} %</span>
+                      <span className="font-mono text-slate-200">{(cardPos?.y ?? 28).toFixed(1)} %</span>
                     </div>
                     <input
                       type="range"
                       min="10"
                       max="90"
                       step="0.5"
-                      value={cardPos.y}
+                      value={cardPos?.y ?? 28}
                       onChange={(e) => setCardPos({ ...cardPos, y: parseFloat(e.target.value) })}
                       className="w-full cursor-pointer"
                     />
@@ -1257,14 +1276,14 @@ export const StudioView: React.FC<StudioViewProps> = ({
                   <div>
                     <div className="flex justify-between text-[11px] text-slate-400 mb-1">
                       <span>Cỡ (Phóng to)</span>
-                      <span className="font-mono text-slate-200">{cardPos.scale.toFixed(1)} %</span>
+                      <span className="font-mono text-slate-200">{(cardPos?.scale ?? 105).toFixed(1)} %</span>
                     </div>
                     <input
                       type="range"
                       min="60"
                       max="150"
                       step="1"
-                      value={cardPos.scale}
+                      value={cardPos?.scale ?? 105}
                       onChange={(e) => setCardPos({ ...cardPos, scale: parseFloat(e.target.value) })}
                       className="w-full cursor-pointer"
                     />
@@ -1273,13 +1292,13 @@ export const StudioView: React.FC<StudioViewProps> = ({
                   <div>
                     <div className="flex justify-between text-[11px] text-slate-400 mb-1">
                       <span>Bo góc</span>
-                      <span className="font-mono text-slate-200">{cardPos.borderRadius} px</span>
+                      <span className="font-mono text-slate-200">{cardPos?.borderRadius ?? 16} px</span>
                     </div>
                     <input
                       type="range"
                       min="0"
                       max="32"
-                      value={cardPos.borderRadius}
+                      value={cardPos?.borderRadius ?? 16}
                       onChange={(e) => setCardPos({ ...cardPos, borderRadius: parseInt(e.target.value) })}
                       className="w-full cursor-pointer"
                     />
@@ -1288,7 +1307,7 @@ export const StudioView: React.FC<StudioViewProps> = ({
                   <div>
                     <label className="block text-[11px] text-slate-400 mb-1">Nền thẻ</label>
                     <select
-                      value={cardPos.bgStyle}
+                      value={cardPos?.bgStyle || 'white'}
                       onChange={(e: any) => setCardPos({ ...cardPos, bgStyle: e.target.value })}
                       className="w-full bg-[#152542] border border-[#213b63] rounded-xl px-3 py-1.5 text-xs text-slate-200 focus:outline-none cursor-pointer"
                     >
@@ -1303,14 +1322,14 @@ export const StudioView: React.FC<StudioViewProps> = ({
                   <div>
                     <div className="flex justify-between text-[11px] text-slate-400 mb-1">
                       <span>Tọa độ X</span>
-                      <span className="font-mono text-slate-200">{subVideoPos.x.toFixed(1)} %</span>
+                      <span className="font-mono text-slate-200">{(subVideoPos?.x ?? 50).toFixed(1)} %</span>
                     </div>
                     <input
                       type="range"
                       min="10"
                       max="90"
                       step="0.5"
-                      value={subVideoPos.x}
+                      value={subVideoPos?.x ?? 50}
                       onChange={(e) => setSubVideoPos({ ...subVideoPos, x: parseFloat(e.target.value) })}
                       className="w-full cursor-pointer"
                     />
@@ -1319,14 +1338,14 @@ export const StudioView: React.FC<StudioViewProps> = ({
                   <div>
                     <div className="flex justify-between text-[11px] text-slate-400 mb-1">
                       <span>Tọa độ Y</span>
-                      <span className="font-mono text-slate-200">{subVideoPos.y.toFixed(1)} %</span>
+                      <span className="font-mono text-slate-200">{(subVideoPos?.y ?? 65).toFixed(1)} %</span>
                     </div>
                     <input
                       type="range"
                       min="10"
                       max="90"
                       step="0.5"
-                      value={subVideoPos.y}
+                      value={subVideoPos?.y ?? 65}
                       onChange={(e) => setSubVideoPos({ ...subVideoPos, y: parseFloat(e.target.value) })}
                       className="w-full cursor-pointer"
                     />
@@ -1335,14 +1354,14 @@ export const StudioView: React.FC<StudioViewProps> = ({
                   <div>
                     <div className="flex justify-between text-[11px] text-slate-400 mb-1">
                       <span>Cỡ (Phóng to)</span>
-                      <span className="font-mono text-slate-200">{subVideoPos.scale.toFixed(1)} %</span>
+                      <span className="font-mono text-slate-200">{(subVideoPos?.scale ?? 110).toFixed(1)} %</span>
                     </div>
                     <input
                       type="range"
                       min="50"
                       max="160"
                       step="1"
-                      value={subVideoPos.scale}
+                      value={subVideoPos?.scale ?? 110}
                       onChange={(e) => setSubVideoPos({ ...subVideoPos, scale: parseFloat(e.target.value) })}
                       className="w-full cursor-pointer"
                     />
@@ -1351,13 +1370,13 @@ export const StudioView: React.FC<StudioViewProps> = ({
                   <div>
                     <div className="flex justify-between text-[11px] text-slate-400 mb-1">
                       <span>Bo góc</span>
-                      <span className="font-mono text-slate-200">{subVideoPos.borderRadius} px</span>
+                      <span className="font-mono text-slate-200">{subVideoPos?.borderRadius ?? 12} px</span>
                     </div>
                     <input
                       type="range"
                       min="0"
                       max="32"
-                      value={subVideoPos.borderRadius}
+                      value={subVideoPos?.borderRadius ?? 12}
                       onChange={(e) => setSubVideoPos({ ...subVideoPos, borderRadius: parseInt(e.target.value) })}
                       className="w-full cursor-pointer"
                     />

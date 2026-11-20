@@ -8,6 +8,71 @@ import { CommentFilterService, CommentFilterOptions } from '../services/commentF
 
 const router = Router();
 
+const defaultFullConfig: VideoConfig = {
+  aspectRatio: '9:16',
+  resolution: '1080p',
+  fps: 30,
+  maskAuthor: false,
+  reviewBeforeExport: true,
+  commentCount: 5,
+  commentFilterMode: 'most_likes',
+  cardPosition: {
+    x: 50.0,
+    y: 28.0,
+    scale: 105.0,
+    borderRadius: 16,
+    bgStyle: 'white'
+  },
+  subVideoPosition: {
+    enabled: true,
+    x: 50.0,
+    y: 65.0,
+    scale: 110.0,
+    borderRadius: 12,
+    folder: 'D:/TOOL/NGUỒN - NỀN - NHẠC/VIDEO PHỤ/T',
+    mute: true,
+    loop: true
+  },
+  backgroundVideoFolder: 'D:/TOOL/NGUỒN - NỀN - NHẠC/VIDEO NỀN/n',
+  backgroundMusic: {
+    folder: 'D:/TOOL/NGUỒN - NỀN - NHẠC/NHẠC NỀN',
+    volume: 20,
+    enabled: true
+  },
+  tts: {
+    previewVoice: 'VieNeu - Ngọc Huyền (Nữ miền Bắc)',
+    speed: 1.20,
+    randomVoiceMode: 'random',
+    selectedVoices: ['VieNeu - Ngọc Huyền (Nữ miền Bắc)', 'VieNeu - Hải Đăng (Nam miền Nam)'],
+    readPost: true,
+    readComments: true,
+    readAuthorName: true,
+    voiceVolume: 85
+  },
+  watermark: {
+    enabled: true,
+    text: '@ThreadsStudio',
+    position: 'top_right',
+    opacity: 0.75,
+    fontSize: 26
+  },
+  effects: {
+    zoomPan: true,
+    blurBackground: false,
+    vignette: false,
+    kenBurns: false
+  },
+  subtitleStyle: {
+    enabled: true,
+    fontSize: 40,
+    primaryColor: '&H00FFFFFF',
+    outlineColor: '&H00000000',
+    position: 'middle'
+  },
+  defaultTransition: 'fade',
+  selectedTemplateId: 'tiktok_trending'
+};
+
 function formatProject(pRow: any): Project {
   const postRow = db.prepare('SELECT * FROM posts WHERE project_id = ?').get(pRow.id) as any;
   const commentRows = db.prepare('SELECT * FROM comments WHERE project_id = ? ORDER BY comment_order ASC').all(pRow.id) as any[];
@@ -71,7 +136,18 @@ function formatProject(pRow: any): Project {
     volume: s.volume ?? 100
   }));
 
-  const config: VideoConfig = JSON.parse(pRow.video_config || '{}');
+  const parsedConfig = JSON.parse(pRow.video_config || '{}');
+  const config: VideoConfig = {
+    ...defaultFullConfig,
+    ...parsedConfig,
+    cardPosition: { ...defaultFullConfig.cardPosition, ...(parsedConfig.cardPosition || {}) },
+    subVideoPosition: { ...defaultFullConfig.subVideoPosition, ...(parsedConfig.subVideoPosition || {}) },
+    backgroundMusic: { ...defaultFullConfig.backgroundMusic, ...(parsedConfig.backgroundMusic || {}) },
+    tts: { ...defaultFullConfig.tts, ...(parsedConfig.tts || {}) },
+    watermark: { ...defaultFullConfig.watermark, ...(parsedConfig.watermark || {}) },
+    effects: { ...defaultFullConfig.effects, ...(parsedConfig.effects || {}) },
+    subtitleStyle: { ...defaultFullConfig.subtitleStyle, ...(parsedConfig.subtitleStyle || {}) }
+  };
 
   return {
     id: pRow.id,

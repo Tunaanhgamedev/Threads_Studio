@@ -33,8 +33,8 @@ interface TimelineEditorProps {
 }
 
 export const TimelineEditor: React.FC<TimelineEditorProps> = ({
-  scenes,
-  audios,
+  scenes = [],
+  audios = [],
   onUpdateScenes,
   onSelectSceneForPreview,
   currentTime = 0,
