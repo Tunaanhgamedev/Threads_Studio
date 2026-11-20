@@ -1,37 +1,29 @@
 @echo off
 title Threads Content Studio - Khoi dong ung dung
-setlocal enabledelayedexpansion
-
-:: Chuyen den thu muc chua file bat
 cd /d "%~dp0"
-
-:: Them cac duong dan pho bien vao PATH
 set "PATH=%PATH%;D:\DevData\npm-global;D:\Nodejs;C:\Program Files\nodejs;%APPDATA%\npm;%LOCALAPPDATA%\pnpm"
 
 echo ===================================================================
 echo             THREADS CONTENT STUDIO - AUTO VIDEO MAKER             
 echo ===================================================================
 echo.
-echo [1/3] Dang kiem tra moi truong Node.js va pnpm...
+echo [1/3] Don dep tien trinh cu va kiem tra moi truong...
 
-where pnpm >nul 2>&1
-if %ERRORLEVEL% neq 0 (
-    echo [CANH BAO] Khong tim thay pnpm trong PATH mac dinh.
-)
+powershell -NoProfile -ExecutionPolicy Bypass -Command "Get-NetTCPConnection -State Listen -ErrorAction SilentlyContinue | Where-Object { 5173, 3210 -contains $_.LocalPort } | ForEach-Object { Stop-Process -Id $_.OwningProcess -Force -ErrorAction SilentlyContinue }"
 
 echo [2/3] Dang khoi dong Backend API va Frontend Studio...
 echo.
 
 :: Tu dong mo cua so app desktop bang Chrome / Edge PWA Mode sau 3 giay
-start "" powershell -NoProfile -ExecutionPolicy Bypass -Command "Start-Sleep -Seconds 3; if (Test-Path 'C:\Program Files\Google\Chrome\Application\chrome.exe') { Start-Process 'C:\Program Files\Google\Chrome\Application\chrome.exe' -ArgumentList '--app=http://localhost:5173', '--window-size=1366,850' } elseif (Test-Path 'C:\Program Files (x86)\Microsoft\Edge\Application\msedge.exe') { Start-Process 'C:\Program Files (x86)\Microsoft\Edge\Application\msedge.exe' -ArgumentList '--app=http://localhost:5173', '--window-size=1366,850' } else { Start-Process 'http://localhost:5173' }"
+start "" powershell -NoProfile -ExecutionPolicy Bypass -Command "Start-Sleep -Seconds 3; if (Test-Path 'C:\Program Files\Google\Chrome\Application\chrome.exe') { Start-Process 'C:\Program Files\Google\Chrome\Application\chrome.exe' -ArgumentList '--app=http://127.0.0.1:5173', '--window-size=1366,850' } elseif (Test-Path 'C:\Program Files (x86)\Microsoft\Edge\Application\msedge.exe') { Start-Process 'C:\Program Files (x86)\Microsoft\Edge\Application\msedge.exe' -ArgumentList '--app=http://127.0.0.1:5173', '--window-size=1366,850' } else { Start-Process 'http://127.0.0.1:5173' }"
 
 echo [3/3] Dang mo giao dien ung dung Threads Studio...
 echo.
 echo ===================================================================
 echo  He thong dang chay! Cua so App Studio dang mo len.
 echo  De tat ung dung, ban chi can dong cua so nay hoac dong App.
-echo  - Frontend Studio: http://localhost:5173
-echo  - Backend API:     http://localhost:3210
+echo  - Frontend Studio: http://127.0.0.1:5173
+echo  - Backend API:     http://127.0.0.1:3210
 echo ===================================================================
 echo.
 
