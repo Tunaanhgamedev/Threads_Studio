@@ -1,0 +1,89 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = "file:../storage/threads_studio.sqlite"
+}
+
+model Project {
+  id           String      @id @default(uuid())
+  title        String
+  threadsUrl   String
+  status       String      @default("draft") // draft, fetching, fetched, rendering, completed, error
+  createdAt    DateTime    @default(now())
+  updatedAt    DateTime    @updatedAt
+  
+  post         Post?
+  comments     Comment[]
+  scenes       Scene[]
+  renderJobs   RenderJob[]
+  videoConfig  String?     // JSON serialized VideoConfig
+}
+
+model Post {
+  id           String   @id
+  projectId    String   @unique
+  project      Project  @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  url          String
+  username     String
+  displayName  String
+  avatar       String
+  content      String
+  mediaUrls    String   // JSON array
+  timestamp    String
+  likes        Int      @default(0)
+  repliesCount Int      @default(0)
+  verified     Boolean  @default(false)
+}
+
+model Comment {
+  id          String   @id
+  projectId   String
+  project     Project  @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  username    String
+  displayName String
+  avatar      String
+  content     String
+  likes       Int      @default(0)
+  timestamp   String
+  selected    Boolean  @default(true)
+  order       Int      @default(0)
+  mediaUrl    String?
+}
+
+model Scene {
+  id        String   @id @default(uuid())
+  projectId String
+  project   Project  @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  order     Int
+  type      String   // hook, post, comment, outro
+  title     String
+  text      String
+  voice     String
+  duration  Float?
+  selected  Boolean  @default(true)
+}
+
+model RenderJob {
+  id              String    @id @default(uuid())
+  projectId       String
+  project         Project   @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  status          String    @default("queued") // idle, queued, rendering, completed, failed
+  progress        Int       @default(0)
+  currentStep     String
+  stepDetails     String?
+  logs            String    // JSON array
+  outputVideoPath String?
+  outputVideoUrl  String?
+  thumbnailUrl    String?
+  createdAt       DateTime  @default(now())
+  completedAt     DateTime?
+  error           String?
+}
+
+model Setting {
+  key   String @id
+  value String
+}
