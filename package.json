@@ -1,0 +1,14 @@
+{
+  "name": "threads-content-studio",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Threads Content Studio - Tự động hóa sản xuất video từ nội dung Threads",
+  "scripts": {
+    "dev": "concurrently -n \"SERVER,CLIENT\" -c \"blue,green\" \"pnpm --filter threads-studio-server dev\" \"pnpm --filter threads-studio-client dev\"",
+    "build": "pnpm --filter threads-studio-client build && pnpm --filter threads-studio-server build",
+    "start": "pnpm --filter threads-studio-server start"
+  },
+  "devDependencies": {
+    "concurrently": "^9.1.2"
+  }
+}
