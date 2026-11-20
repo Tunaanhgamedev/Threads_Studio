@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { Navbar } from './components/Navbar';
 import { Sidebar, ActiveTab } from './components/Sidebar';
 import { StudioView } from './views/StudioView';
+import { AutomationView } from './views/AutomationView';
 import { DashboardView } from './views/DashboardView';
 import { SourcesView } from './views/SourcesView';
 import { CommentsView } from './views/CommentsView';
@@ -176,6 +177,14 @@ export const App: React.FC = () => {
               </div>
             </div>
           )
+        )}
+
+        {activeTab === 'automation' && (
+          <AutomationView
+            onOpenVideoModal={handleOpenVideoDirect}
+            onSelectProject={handleSelectProject}
+            onOpenStudio={() => setActiveTab('studio')}
+          />
         )}
 
         {activeTab === 'dashboard' && (

@@ -73,7 +73,7 @@ const defaultFullConfig: VideoConfig = {
   selectedTemplateId: 'tiktok_trending'
 };
 
-function formatProject(pRow: any): Project {
+export function formatProject(pRow: any): Project {
   const postRow = db.prepare('SELECT * FROM posts WHERE project_id = ?').get(pRow.id) as any;
   const commentRows = db.prepare('SELECT * FROM comments WHERE project_id = ? ORDER BY comment_order ASC').all(pRow.id) as any[];
   const sceneRows = db.prepare('SELECT * FROM scenes WHERE project_id = ? ORDER BY scene_order ASC').all(pRow.id) as any[];
@@ -190,7 +190,7 @@ router.get('/:id', (req, res) => {
 });
 
 // Helper to create a single project with extractor
-async function createProjectFromUrl(url: string, title?: string) {
+export async function createProjectFromUrl(url: string, title?: string, customConfig?: Partial<VideoConfig>) {
   const projectId = `proj_${Date.now()}_${Math.random().toString(36).substring(2, 7)}`;
   const now = new Date().toISOString();
 
@@ -198,46 +198,32 @@ async function createProjectFromUrl(url: string, title?: string) {
   const post = extraction.post;
   const comments = extraction.comments;
 
-  const defaultConfig: VideoConfig = {
-    aspectRatio: '9:16',
-    resolution: '1080p',
-    fps: 30,
-    maskAuthor: false,
-    reviewBeforeExport: true,
-    commentCount: 5,
-    commentFilterMode: 'most_likes',
-    cardPosition: {
-      x: 50.0,
-      y: 28.0,
-      scale: 105.0,
-      borderRadius: 16,
-      bgStyle: 'white'
+  const mergedConfig: VideoConfig = {
+    ...defaultFullConfig,
+    ...(customConfig || {}),
+    cardPosition: { ...defaultFullConfig.cardPosition, ...(customConfig?.cardPosition || {}) },
+    subVideoPosition: { ...defaultFullConfig.subVideoPosition, ...(customConfig?.subVideoPosition || {}) },
+    backgroundMusic: { ...defaultFullConfig.backgroundMusic, ...(customConfig?.backgroundMusic || {}) },
+    tts: { ...defaultFullConfig.tts, ...(customConfig?.tts || {}) },
+    watermark: {
+      enabled: customConfig?.watermark?.enabled ?? defaultFullConfig.watermark?.enabled ?? true,
+      text: customConfig?.watermark?.text ?? defaultFullConfig.watermark?.text ?? '@ThreadsStudio',
+      position: customConfig?.watermark?.position ?? defaultFullConfig.watermark?.position ?? 'top_right',
+      opacity: customConfig?.watermark?.opacity ?? defaultFullConfig.watermark?.opacity ?? 0.75,
+      fontSize: customConfig?.watermark?.fontSize ?? defaultFullConfig.watermark?.fontSize ?? 26
     },
-    subVideoPosition: {
-      enabled: true,
-      x: 50.0,
-      y: 65.0,
-      scale: 110.0,
-      borderRadius: 12,
-      folder: 'D:/TOOL/NGUỒN - NỀN - NHẠC/VIDEO PHỤ/T',
-      mute: true,
-      loop: true
+    effects: {
+      zoomPan: customConfig?.effects?.zoomPan ?? defaultFullConfig.effects?.zoomPan ?? true,
+      blurBackground: customConfig?.effects?.blurBackground ?? defaultFullConfig.effects?.blurBackground ?? false,
+      vignette: customConfig?.effects?.vignette ?? defaultFullConfig.effects?.vignette ?? false,
+      kenBurns: customConfig?.effects?.kenBurns ?? defaultFullConfig.effects?.kenBurns ?? false
     },
-    backgroundVideoFolder: 'D:/TOOL/NGUỒN - NỀN - NHẠC/VIDEO NỀN/n',
-    backgroundMusic: {
-      folder: 'D:/TOOL/NGUỒN - NỀN - NHẠC/NHẠC NỀN',
-      volume: 20,
-      enabled: true
-    },
-    tts: {
-      previewVoice: 'VieNeu - Ngọc Huyền (Nữ miền Bắc)',
-      speed: 1.20,
-      randomVoiceMode: 'random',
-      selectedVoices: ['VieNeu - Ngọc Huyền (Nữ miền Bắc)', 'VieNeu - Hải Đăng (Nam miền Nam)'],
-      readPost: true,
-      readComments: true,
-      readAuthorName: true,
-      voiceVolume: 85
+    subtitleStyle: {
+      enabled: customConfig?.subtitleStyle?.enabled ?? defaultFullConfig.subtitleStyle?.enabled ?? true,
+      fontSize: customConfig?.subtitleStyle?.fontSize ?? defaultFullConfig.subtitleStyle?.fontSize ?? 40,
+      primaryColor: customConfig?.subtitleStyle?.primaryColor ?? defaultFullConfig.subtitleStyle?.primaryColor ?? '&H00FFFFFF',
+      outlineColor: customConfig?.subtitleStyle?.outlineColor ?? defaultFullConfig.subtitleStyle?.outlineColor ?? '&H00000000',
+      position: customConfig?.subtitleStyle?.position ?? defaultFullConfig.subtitleStyle?.position ?? 'middle'
     }
   };
 
@@ -250,7 +236,7 @@ async function createProjectFromUrl(url: string, title?: string) {
     url,
     now,
     now,
-    JSON.stringify(defaultConfig)
+    JSON.stringify(mergedConfig)
   );
 
   db.prepare(`

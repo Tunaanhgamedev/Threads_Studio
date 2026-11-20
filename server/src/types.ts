@@ -204,3 +204,31 @@ export interface AudioItem {
   text: string;
   createdAt: string;
 }
+
+// Phase 7 - Automation Engine Types
+export interface BatchItem {
+  id: string;
+  batchId: string;
+  threadsUrl: string;
+  projectId?: string;
+  status: 'pending' | 'scraping' | 'screenshotting' | 'voicing' | 'rendering' | 'completed' | 'failed';
+  currentStep: string;
+  progress: number;
+  error?: string;
+  outputVideoUrl?: string;
+  createdAt: string;
+  completedAt?: string;
+}
+
+export interface BatchJob {
+  id: string;
+  title: string;
+  totalItems: number;
+  completedItems: number;
+  failedItems: number;
+  status: 'queued' | 'processing' | 'completed' | 'cancelled' | 'failed';
+  config: Partial<VideoConfig>;
+  items?: BatchItem[];
+  createdAt: string;
+  updatedAt: string;
+}

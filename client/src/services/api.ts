@@ -1,4 +1,4 @@
-import { Project, VoiceItem, SystemSettings, RenderJob, StudioTemplate } from '../types';
+import { Project, VoiceItem, SystemSettings, RenderJob, StudioTemplate, BatchJob, BatchItem } from '../types';
 
 const API_BASE = '/api';
 
@@ -292,5 +292,56 @@ export const api = {
   async scanFolder(folder: string): Promise<{ success: boolean; exists: boolean; path: string; videoCount: number; audioCount: number; videoFiles?: string[]; audioFiles?: string[] }> {
     const res = await fetch(`${API_BASE}/media/scan-folder?folder=${encodeURIComponent(folder)}`);
     return await res.json();
+  },
+
+  // Phase 7 - Automation Engine
+  async extractThreadsUrls(text: string): Promise<{ success: boolean; count: number; urls: string[] }> {
+    const res = await fetch(`${API_BASE}/automation/extract-urls`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ text })
+    });
+    return await res.json();
+  },
+
+  async createBatch(urls: string[], config?: any, title?: string): Promise<BatchJob> {
+    const res = await fetch(`${API_BASE}/automation/batches`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ urls, config, title })
+    });
+    const data = await res.json();
+    if (!data.success) throw new Error(data.error);
+    return data.batch;
+  },
+
+  async getBatches(): Promise<BatchJob[]> {
+    const res = await fetch(`${API_BASE}/automation/batches`);
+    const data = await res.json();
+    if (!data.success) throw new Error(data.error);
+    return data.batches;
+  },
+
+  async getBatch(id: string): Promise<BatchJob> {
+    const res = await fetch(`${API_BASE}/automation/batches/${id}`);
+    const data = await res.json();
+    if (!data.success) throw new Error(data.error);
+    return data.batch;
+  },
+
+  async cancelBatch(id: string): Promise<void> {
+    const res = await fetch(`${API_BASE}/automation/batches/${id}/cancel`, {
+      method: 'POST'
+    });
+    const data = await res.json();
+    if (!data.success) throw new Error(data.error);
+  },
+
+  async deleteBatch(id: string): Promise<void> {
+    const res = await fetch(`${API_BASE}/automation/batches/${id}`, {
+      method: 'DELETE'
+    });
+    const data = await res.json();
+    if (!data.success) throw new Error(data.error);
   }
 };

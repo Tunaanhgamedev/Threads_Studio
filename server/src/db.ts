@@ -119,6 +119,33 @@ db.exec(`
     key TEXT PRIMARY KEY,
     value TEXT NOT NULL
   );
+
+  CREATE TABLE IF NOT EXISTS batch_jobs (
+    id TEXT PRIMARY KEY,
+    title TEXT NOT NULL,
+    total_items INTEGER NOT NULL DEFAULT 0,
+    completed_items INTEGER NOT NULL DEFAULT 0,
+    failed_items INTEGER NOT NULL DEFAULT 0,
+    status TEXT NOT NULL DEFAULT 'queued',
+    config TEXT NOT NULL,
+    created_at TEXT NOT NULL,
+    updated_at TEXT NOT NULL
+  );
+
+  CREATE TABLE IF NOT EXISTS batch_items (
+    id TEXT PRIMARY KEY,
+    batch_id TEXT NOT NULL,
+    threads_url TEXT NOT NULL,
+    project_id TEXT,
+    status TEXT NOT NULL DEFAULT 'pending',
+    current_step TEXT NOT NULL DEFAULT 'Chờ xử lý',
+    progress INTEGER NOT NULL DEFAULT 0,
+    error TEXT,
+    output_video_url TEXT,
+    created_at TEXT NOT NULL,
+    completed_at TEXT,
+    FOREIGN KEY(batch_id) REFERENCES batch_jobs(id) ON DELETE CASCADE
+  );
 `);
 
 // Migrations for Phase 6 - Advanced Video Studio
