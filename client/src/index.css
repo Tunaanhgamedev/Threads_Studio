@@ -1,0 +1,41 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  body {
+    @apply bg-[#070d19] text-slate-100 overflow-x-hidden;
+  }
+}
+
+/* Dark grid background pattern matching user's Threads Studio preview */
+.bg-grid-pattern {
+  background-size: 30px 30px;
+  background-image: 
+    linear-gradient(to right, rgba(59, 130, 246, 0.15) 1px, transparent 1px),
+    linear-gradient(to bottom, rgba(59, 130, 246, 0.15) 1px, transparent 1px);
+}
+
+/* Custom scrollbars */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+
+::-webkit-scrollbar-track {
+  background: #0b1527;
+}
+
+::-webkit-scrollbar-thumb {
+  background: #1f3556;
+  border-radius: 9999px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: #2b4a78;
+}
+
+/* Input range slider custom styling */
+input[type="range"] {
+  accent-color: #2563eb;
+}
