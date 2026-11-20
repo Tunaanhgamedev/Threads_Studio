@@ -31,9 +31,19 @@ Short-form platforms (**TikTok Creativity Program Beta, YouTube Shorts Monetizat
 
 ---
 
-## ⚡ Key Features (Phase 1 – Phase 6 Complete)
+## ⚡ Key Features (Phase 1 – Phase 7 Complete)
 
-### 1. Multi-Tier Real Threads Extractor
+### 1. Autonomous Batch Automation Engine (Phase 7 - Zero-Touch MMO Workflow)
+- **Multi-URL Bulk Intake:** Paste dozens of Threads URLs simultaneously (one per line or comma-separated).
+- **Zero-Touch Production Pipeline:** With a single click on `Bắt đầu sản xuất hàng loạt`, the system autonomously:
+  1. Deep-scrapes post text, verified author profiles, and top liked comments.
+  2. Generates ultra high-definition PNG Threads cards with Playwright.
+  3. Synthesizes Vietnamese human-like Neural Voiceovers via Microsoft Edge Neural TTS or Piper.
+  4. Composites the MP4 with looped background footage, secondary PIP video, and hardburned ASS animated subtitles.
+- **Background Queue & Concurrency Management:** FIFO job scheduler prevents CPU/GPU throttling while running full headless browser and FFmpeg pipelines.
+- **Real-Time Progress & Instant Preview:** Watch individual task steps in real-time, view finished MP4s right on the dashboard, and download them with one click.
+
+### 2. Multi-Tier Real Threads Extractor (Phase 1 & 2)
 - **Tier 1 (Playwright Deep Scraper):** Automatically opens a headless Chrome/Edge instance, bypasses client-side hydration, intercepts GraphQL payloads, and extracts:
   - Real author handle (`@username`), display name, verified status badge, high-res avatar.
   - Complete post caption text and media attachments.
@@ -41,13 +51,26 @@ Short-form platforms (**TikTok Creativity Program Beta, YouTube Shorts Monetizat
 - **Tier 2 (Official oEmbed & SSR Parser):** Fast fallback parsing metadata directly from Meta's official oEmbed endpoints and ServerJS JSON state.
 - **Manual Quick-Input:** Paste custom stories or scripts using intuitive `Author: Text \n Comment 1 \n Comment 2` notation.
 
-### 2. Neural Voice & AI Script Engine (Zero Cost)
-- **Local Piper TTS:** Integrates with local neural Piper engine (`http://localhost:5000`) for crystal-clear Vietnamese (`vi_VN-vais1000-medium`) and international voices running at 50x real-time speed.
-- **Built-in Harmonic Fallback:** Internal audio synthesizer ensures renders never halt if TTS server is offline.
-- **Ollama AI Viral Hook Engine:** Connects to local LLMs (`llama3.2` via `http://localhost:11434`) to analyze the thread and generate captivating 3-second scroll-stopping hooks and smooth comment transitions.
+### 3. Neural Voice & AI Script Engine (Zero Cost, Studio Quality) (Phase 4)
+- **Microsoft Edge Neural Vietnamese Voices:** Built-in studio-grade neural voiceover for Vietnamese creators (`vi-VN-HoaiMyNeural`, `vi-VN-NamMinhNeural`) with zero API keys or monthly subscriptions required.
+- **Full Preset Mapping:** Instant access to 7 distinct voice personalities:
+  - *VieNeu - Ngọc Huyền*: Warm, engaging Northern female voice.
+  - *VieNeu - Thiện Minh*: Deep, authoritative Northern male news voice.
+  - *VieNeu - Hải Đăng*: Energetic Southern male commentary voice.
+  - *TikTok Viral 1 & 2*: High-energy social-media robot voices.
+  - *Adam bựa*: Witty, humorous commentary voice.
+- **Local Piper TTS Option:** Seamless compatibility with local Piper server (`http://localhost:5000`) for fully offline environments.
+- **Ollama AI Viral Hook Engine:** Connects to local LLMs (`llama3.2` via `http://localhost:11434`) to analyze threads and generate captivating 3-second scroll-stopping hooks.
 
-### 3. Pixel-Perfect Screenshot Engine
-- Built with **Playwright Headless Chrome** rendering genuine Threads card styling.
+### 4. Native Windows Folder Browser & Live Video Canvas Streaming
+- **Native Folder Browser Dialog:** Integrates directly with Windows `FolderBrowserDialog` via backend API (`POST /api/media/browse-folder`) — no manual path typing required.
+- **Live Local Video Streaming:** Backend HTTP 206 Partial Content server (`/api/media/stream-local`) allows Chrome and Edge to stream and loop local MP4 background and secondary gameplay videos directly inside the live React canvas.
+
+### 5. Multi-Layer FFmpeg Video Compositor (Phase 5 & 6)
+- **Dynamic Picture-in-Picture (PIP):** Automatic secondary split-screen overlay for kinetic motion, satisfying clips, or gameplay footage.
+- **Hardburned ASS Subtitles:** Word-level highlighted subtitles with customizable font sizes, primary/secondary colors, and positioning (`bottom`, `middle`, `top`).
+- **Background Music Mixing:** Automatic audio looping with configurable background music volume (`0% - 100%`).
+- **Interactive Timeline Editor (Phase 6):** Drag-and-drop scene ordering, transition selection (Cut, Fade, Slide), and individual scene duration fine-tuning.
 - Native Light & Dark theme toggle.
 - 9:16 Vertical (Shorts/TikTok/Reels), 16:9 Horizontal (YouTube long-form), and 1:1 Square formats.
 - Real-time live card preview in Studio canvas.
