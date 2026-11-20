@@ -78,6 +78,11 @@ export const StudioView: React.FC<StudioViewProps> = ({
   const [bgMusicFolder, setBgMusicFolder] = useState(project.config?.backgroundMusic?.folder || '');
   const [bgMusicVolume, setBgMusicVolume] = useState(project.config?.backgroundMusic?.volume ?? 20);
 
+  // Folder real-time scan statuses
+  const [bgVideoInfo, setBgVideoInfo] = useState<{ checked: boolean; exists: boolean; count: number }>({ checked: false, exists: false, count: 0 });
+  const [subVideoInfo, setSubVideoInfo] = useState<{ checked: boolean; exists: boolean; count: number }>({ checked: false, exists: false, count: 0 });
+  const [bgMusicInfo, setBgMusicInfo] = useState<{ checked: boolean; exists: boolean; count: number }>({ checked: false, exists: false, count: 0 });
+
   // Position & sizing tabs: 'card' | 'subVideo'
   const [positionTab, setPositionTab] = useState<'card' | 'subVideo'>('card');
   const [cardPos, setCardPos] = useState({ ...defaultCardPos, ...(project.config?.cardPosition || {}) });
@@ -140,6 +145,89 @@ export const StudioView: React.FC<StudioViewProps> = ({
       logsEndRef.current.scrollIntoView({ behavior: 'smooth' });
     }
   }, [logs, isLogsExpanded]);
+
+  // Real-time Folder Scanners
+  useEffect(() => {
+    if (!bgVideoFolder) {
+      setBgVideoInfo({ checked: true, exists: false, count: 0 });
+      return;
+    }
+    const timer = setTimeout(async () => {
+      try {
+        const res = await api.scanFolder(bgVideoFolder);
+        setBgVideoInfo({ checked: true, exists: res.exists, count: res.videoCount || 0 });
+      } catch {
+        setBgVideoInfo({ checked: true, exists: false, count: 0 });
+      }
+    }, 300);
+    return () => clearTimeout(timer);
+  }, [bgVideoFolder]);
+
+  useEffect(() => {
+    if (!subVideoFolder) {
+      setSubVideoInfo({ checked: true, exists: false, count: 0 });
+      return;
+    }
+    const timer = setTimeout(async () => {
+      try {
+        const res = await api.scanFolder(subVideoFolder);
+        setSubVideoInfo({ checked: true, exists: res.exists, count: res.videoCount || 0 });
+      } catch {
+        setSubVideoInfo({ checked: true, exists: false, count: 0 });
+      }
+    }, 300);
+    return () => clearTimeout(timer);
+  }, [subVideoFolder]);
+
+  useEffect(() => {
+    if (!bgMusicFolder) {
+      setBgMusicInfo({ checked: true, exists: false, count: 0 });
+      return;
+    }
+    const timer = setTimeout(async () => {
+      try {
+        const res = await api.scanFolder(bgMusicFolder);
+        setBgMusicInfo({ checked: true, exists: res.exists, count: res.audioCount || 0 });
+      } catch {
+        setBgMusicInfo({ checked: true, exists: false, count: 0 });
+      }
+    }, 300);
+    return () => clearTimeout(timer);
+  }, [bgMusicFolder]);
+
+  // Native Windows Folder Browser Handlers
+  const handleBrowseBgVideo = async () => {
+    try {
+      const selected = await api.browseFolder(bgVideoFolder, 'Chọn thư mục chứa Video nền');
+      if (selected) {
+        setBgVideoFolder(selected);
+      }
+    } catch (err: any) {
+      console.warn('Folder browse failed:', err);
+    }
+  };
+
+  const handleBrowseSubVideo = async () => {
+    try {
+      const selected = await api.browseFolder(subVideoFolder, 'Chọn thư mục chứa Video phụ (Meme / Gameplay / Satisfying)');
+      if (selected) {
+        setSubVideoFolder(selected);
+      }
+    } catch (err: any) {
+      console.warn('Folder browse failed:', err);
+    }
+  };
+
+  const handleBrowseBgMusic = async () => {
+    try {
+      const selected = await api.browseFolder(bgMusicFolder, 'Chọn thư mục chứa Nhạc nền');
+      if (selected) {
+        setBgMusicFolder(selected);
+      }
+    } catch (err: any) {
+      console.warn('Folder browse failed:', err);
+    }
+  };
 
   // Sync state when project changes
   useEffect(() => {
@@ -297,7 +385,7 @@ export const StudioView: React.FC<StudioViewProps> = ({
     }
   };
 
-  // Preview Speech synthesis using active TTS backend (Piper / Synthetic), falling back to Web Speech
+  // Preview Speech synthesis using active TTS backend (Edge / Piper / Google), falling back to Web Speech
   const handlePreviewVoice = async () => {
     setIsPlayingAudio(true);
     try {
@@ -311,6 +399,7 @@ export const StudioView: React.FC<StudioViewProps> = ({
         if (audioPreviewRef.current) {
           audioPreviewRef.current.pause();
         }
+        setLogs(prev => [...prev, `[${new Date().toLocaleTimeString()}] Đang phát thử giọng: ${previewVoice} (${res.provider || 'Neural TTS'})`]);
         const audio = new Audio(res.audioUrl);
         audioPreviewRef.current = audio;
         audio.onended = () => setIsPlayingAudio(false);
@@ -327,7 +416,10 @@ export const StudioView: React.FC<StudioViewProps> = ({
       const utterance = new SpeechSynthesisUtterance('Xin chào, đây là giọng đọc thử nghiệm trong Threads Content Studio.');
       utterance.rate = voiceSpeed;
       utterance.lang = 'vi-VN';
-      utterance.onstart = () => setIsPlayingAudio(true);
+      utterance.onstart = () => {
+        setIsPlayingAudio(true);
+        setLogs(prev => [...prev, `[${new Date().toLocaleTimeString()}] Đang phát thử bằng Web Speech API`]);
+      };
       utterance.onend = () => setIsPlayingAudio(false);
       utterance.onerror = () => setIsPlayingAudio(false);
       window.speechSynthesis.speak(utterance);
@@ -740,23 +832,36 @@ export const StudioView: React.FC<StudioViewProps> = ({
 
           {/* Card 4: Video & âm thanh */}
           <div className="bg-[#0f1b30] rounded-2xl border border-[#1b3154] p-4 shadow-sm space-y-3">
-            <h3 className="text-sm font-bold text-slate-100 mb-2">Video & âm thanh</h3>
+            <h3 className="text-sm font-bold text-slate-100 mb-2 flex items-center justify-between">
+              <span>Video & âm thanh</span>
+              <span className="text-[10px] text-slate-400 font-normal">Tự động lặp & căn chỉnh</span>
+            </h3>
 
             {/* Video nền */}
             <div>
-              <label className="block text-[11px] text-slate-400 mb-1">Thư mục video nền - ngẫu nhiên</label>
+              <div className="flex items-center justify-between mb-1">
+                <label className="block text-[11px] text-slate-400">Thư mục video nền - ngẫu nhiên</label>
+                {bgVideoInfo.checked && (
+                  <span className={`text-[10px] font-mono font-medium ${bgVideoInfo.exists && bgVideoInfo.count > 0 ? 'text-emerald-400' : 'text-amber-400'}`}>
+                    {bgVideoInfo.exists ? `✓ ${bgVideoInfo.count} video sẵn sàng` : '⚠ Chưa thấy file video'}
+                  </span>
+                )}
+              </div>
               <div className="flex gap-2">
                 <input
                   type="text"
                   value={bgVideoFolder}
+                  placeholder="D:/TOOL/NGUỒN - NỀN - NHẠC/VIDEO NỀN/n"
                   onChange={(e) => setBgVideoFolder(e.target.value)}
-                  className="flex-1 bg-[#152542] border border-[#213b63] rounded-xl px-3 py-1.5 text-xs text-slate-200 font-mono truncate focus:outline-none"
+                  className="flex-1 bg-[#152542] border border-[#213b63] rounded-xl px-3 py-1.5 text-xs text-slate-200 font-mono truncate focus:outline-none focus:border-blue-500"
                 />
                 <button 
-                  onClick={() => alert('Đã gán thư mục: ' + bgVideoFolder)}
-                  className="bg-[#1b2f52] hover:bg-[#233d6b] text-slate-200 px-3 py-1.5 rounded-xl text-xs font-medium border border-[#254370] transition shrink-0"
+                  onClick={handleBrowseBgVideo}
+                  className="bg-[#1b2f52] hover:bg-[#233d6b] text-slate-200 px-3 py-1.5 rounded-xl text-xs font-semibold border border-[#254370] transition shrink-0 flex items-center gap-1.5 cursor-pointer active:scale-95"
+                  title="Mở hộp thoại chọn thư mục Windows"
                 >
-                  Chọn thư mục
+                  <FolderOpen size={13} className="text-blue-400" />
+                  <span>Chọn thư mục</span>
                 </button>
               </div>
             </div>
@@ -769,10 +874,15 @@ export const StudioView: React.FC<StudioViewProps> = ({
                     type="checkbox"
                     checked={subVideoEnabled}
                     onChange={(e) => setSubVideoEnabled(e.target.checked)}
-                    className="w-3.5 h-3.5 rounded bg-[#172744] border-[#253f68] text-blue-600 focus:ring-0"
+                    className="w-3.5 h-3.5 rounded bg-[#172744] border-[#253f68] text-blue-600 focus:ring-0 cursor-pointer"
                   />
                   <span>Video phụ (Meme / Satisfying / Gameplay)</span>
                 </label>
+                {subVideoEnabled && subVideoInfo.checked && (
+                  <span className={`text-[10px] font-mono font-medium ${subVideoInfo.exists && subVideoInfo.count > 0 ? 'text-emerald-400' : 'text-amber-400'}`}>
+                    {subVideoInfo.exists ? `✓ ${subVideoInfo.count} video` : '⚠ Chưa thấy video'}
+                  </span>
+                )}
               </div>
 
               {subVideoEnabled && (
@@ -781,31 +891,50 @@ export const StudioView: React.FC<StudioViewProps> = ({
                     <input
                       type="text"
                       value={subVideoFolder}
+                      placeholder="D:/TOOL/NGUỒN - NỀN - NHẠC/VIDEO PHỤ/T"
                       onChange={(e) => setSubVideoFolder(e.target.value)}
-                      className="flex-1 bg-[#152542] border border-[#213b63] rounded-xl px-3 py-1.5 text-xs text-slate-200 font-mono truncate focus:outline-none"
+                      className="flex-1 bg-[#152542] border border-[#213b63] rounded-xl px-3 py-1.5 text-xs text-slate-200 font-mono truncate focus:outline-none focus:border-blue-500"
                     />
                     <button 
-                      onClick={() => alert('Đã gán thư mục: ' + subVideoFolder)}
-                      className="bg-[#1b2f52] hover:bg-[#233d6b] text-slate-200 px-3 py-1.5 rounded-xl text-xs font-medium border border-[#254370] transition shrink-0"
+                      onClick={handleBrowseSubVideo}
+                      className="bg-[#1b2f52] hover:bg-[#233d6b] text-slate-200 px-3 py-1.5 rounded-xl text-xs font-semibold border border-[#254370] transition shrink-0 flex items-center gap-1.5 cursor-pointer active:scale-95"
+                      title="Mở hộp thoại chọn thư mục Windows"
                     >
-                      Chọn thư mục
+                      <FolderOpen size={13} className="text-cyan-400" />
+                      <span>Chọn thư mục</span>
                     </button>
                   </div>
-                  <p className="text-[11px] text-slate-400">Tắt tiếng · Ngẫu nhiên · Tự lặp đủ thời lượng</p>
+                  <p className="text-[11px] text-slate-400">Tắt tiếng · Ngẫu nhiên · Tự lặp đủ thời lượng theo video chính</p>
                 </div>
               )}
             </div>
 
             {/* Nhạc nền & âm lượng */}
             <div className="pt-2 border-t border-[#182b47]">
-              <label className="block text-[11px] text-slate-400 mb-1">Thư mục nhạc nền</label>
+              <div className="flex items-center justify-between mb-1">
+                <label className="block text-[11px] text-slate-400">Thư mục nhạc nền</label>
+                {bgMusicInfo.checked && (
+                  <span className={`text-[10px] font-mono font-medium ${bgMusicInfo.exists && bgMusicInfo.count > 0 ? 'text-emerald-400' : 'text-amber-400'}`}>
+                    {bgMusicInfo.exists ? `✓ ${bgMusicInfo.count} bài nhạc` : '⚠ Chưa thấy file nhạc'}
+                  </span>
+                )}
+              </div>
               <div className="flex gap-2 mb-2">
                 <input
                   type="text"
                   value={bgMusicFolder}
+                  placeholder="D:/TOOL/NGUỒN - NỀN - NHẠC/NHẠC NỀN"
                   onChange={(e) => setBgMusicFolder(e.target.value)}
-                  className="flex-1 bg-[#152542] border border-[#213b63] rounded-xl px-3 py-1.5 text-xs text-slate-200 font-mono truncate focus:outline-none"
+                  className="flex-1 bg-[#152542] border border-[#213b63] rounded-xl px-3 py-1.5 text-xs text-slate-200 font-mono truncate focus:outline-none focus:border-blue-500"
                 />
+                <button 
+                  onClick={handleBrowseBgMusic}
+                  className="bg-[#1b2f52] hover:bg-[#233d6b] text-slate-200 px-3 py-1.5 rounded-xl text-xs font-semibold border border-[#254370] transition shrink-0 flex items-center gap-1.5 cursor-pointer active:scale-95"
+                  title="Mở hộp thoại chọn thư mục Windows"
+                >
+                  <FolderOpen size={13} className="text-purple-400" />
+                  <span>Chọn thư mục</span>
+                </button>
               </div>
 
               <div className="flex items-center justify-between text-xs text-slate-300">
@@ -816,7 +945,7 @@ export const StudioView: React.FC<StudioViewProps> = ({
                   max="100"
                   value={bgMusicVolume}
                   onChange={(e) => setBgMusicVolume(parseInt(e.target.value))}
-                  className="w-32 cursor-pointer"
+                  className="w-32 cursor-pointer accent-blue-500"
                 />
               </div>
             </div>
@@ -1041,11 +1170,26 @@ export const StudioView: React.FC<StudioViewProps> = ({
                   : 'w-[420px] h-[420px]'
               }`}
             >
-              {/* Optional background video visual simulation */}
+              {/* Background Video Preview */}
+              {bgVideoFolder && bgVideoInfo.exists && bgVideoInfo.count > 0 && (
+                <video
+                  key={bgVideoFolder}
+                  src={`/api/media/stream-local?folder=${encodeURIComponent(bgVideoFolder)}&type=video`}
+                  autoPlay
+                  loop
+                  muted
+                  playsInline
+                  className="absolute inset-0 w-full h-full object-cover pointer-events-none"
+                  style={{
+                    filter: `${effects.blurBackground ? 'blur(6px)' : 'none'} ${effects.vignette ? 'brightness(0.7)' : 'brightness(0.85)'}`
+                  }}
+                />
+              )}
               <div className="absolute inset-0 bg-gradient-to-b from-blue-950/20 via-transparent to-slate-950/80 pointer-events-none" />
 
               {/* 1. Dynamic Threads Card (Post or Comment) */}
               <div
+                onClick={() => setPositionTab('card')}
                 style={{
                   position: 'absolute',
                   left: `${cardPos.x}%`,
@@ -1062,7 +1206,9 @@ export const StudioView: React.FC<StudioViewProps> = ({
                   backdropFilter: cardPos.bgStyle === 'transparent' ? 'blur(12px)' : 'none',
                   border: cardPos.bgStyle === 'white' ? '1px solid #e2e8f0' : '1px solid #1e3356'
                 }}
-                className="w-[88%] p-3.5 shadow-2xl transition-all duration-150 select-none cursor-move z-20"
+                className={`w-[88%] p-3.5 shadow-2xl transition-all duration-150 select-none cursor-pointer z-20 ${
+                  positionTab === 'card' ? 'ring-2 ring-blue-500 ring-offset-2 ring-offset-slate-950' : ''
+                }`}
               >
                 {/* Threads Author Bar */}
                 <div className="flex items-center justify-between mb-2">
@@ -1124,6 +1270,7 @@ export const StudioView: React.FC<StudioViewProps> = ({
               {/* 2. Secondary Video (Video Phụ) Overlay */}
               {subVideoEnabled && (
                 <div
+                  onClick={() => setPositionTab('subVideo')}
                   style={{
                     position: 'absolute',
                     left: `${subVideoPos.x}%`,
@@ -1131,24 +1278,37 @@ export const StudioView: React.FC<StudioViewProps> = ({
                     transform: `translate(-50%, -50%) scale(${subVideoPos.scale / 100})`,
                     borderRadius: `${subVideoPos.borderRadius}px`
                   }}
-                  className="w-[78%] h-36 bg-slate-900 border-2 border-dashed border-cyan-400/80 shadow-2xl overflow-hidden flex flex-col items-center justify-center z-10 group"
+                  className={`w-[78%] h-36 bg-slate-900 shadow-2xl overflow-hidden flex flex-col items-center justify-center z-10 group cursor-pointer transition-all duration-150 ${
+                    positionTab === 'subVideo' ? 'ring-2 ring-cyan-400 ring-offset-2 ring-offset-slate-950' : 'border border-cyan-500/40'
+                  }`}
                 >
-                  {/* Video preview simulation */}
-                  <div className="absolute inset-0 bg-gradient-to-tr from-cyan-950 via-slate-900 to-blue-900 opacity-90 flex items-center justify-center">
-                    <div className="text-center p-2">
-                      <div className="w-10 h-10 rounded-full bg-cyan-500/20 text-cyan-300 flex items-center justify-center mx-auto mb-1 border border-cyan-400/30">
-                        <Play size={18} className="ml-0.5 fill-cyan-400" />
+                  {subVideoFolder && subVideoInfo.exists && subVideoInfo.count > 0 ? (
+                    <video
+                      key={subVideoFolder}
+                      src={`/api/media/stream-local?folder=${encodeURIComponent(subVideoFolder)}&type=video`}
+                      autoPlay
+                      loop
+                      muted
+                      playsInline
+                      className="w-full h-full object-cover pointer-events-none"
+                    />
+                  ) : (
+                    <div className="absolute inset-0 bg-gradient-to-tr from-cyan-950 via-slate-900 to-blue-900 opacity-95 flex items-center justify-center p-3 text-center border-2 border-dashed border-cyan-400/50">
+                      <div>
+                        <div className="w-9 h-9 rounded-full bg-cyan-500/20 text-cyan-300 flex items-center justify-center mx-auto mb-1 border border-cyan-400/30">
+                          <Play size={16} className="ml-0.5 fill-cyan-400" />
+                        </div>
+                        <p className="text-[11px] font-semibold text-cyan-200">Video phụ (Meme / Gameplay)</p>
+                        <p className="text-[10px] text-cyan-300/80 mt-0.5">
+                          {subVideoFolder ? (subVideoInfo.exists ? 'Đang chuẩn bị video...' : '⚠ Chưa thấy file video') : 'Bấm "Chọn thư mục" ở bên trái'}
+                        </p>
                       </div>
-                      <p className="text-[10px] font-semibold text-cyan-200">Video phụ đang lặp</p>
-                      <p className="text-[9px] text-cyan-300/70 truncate max-w-[200px]">
-                        {subVideoFolder.split('/').pop() || 'T/video_01.mp4'}
-                      </p>
                     </div>
-                  </div>
+                  )}
 
                   {/* Dimension badge */}
-                  <span className="absolute top-1.5 right-1.5 text-[9px] bg-black/60 text-cyan-300 px-1.5 py-0.5 rounded font-mono">
-                    X:{subVideoPos.x}% Y:{subVideoPos.y}%
+                  <span className="absolute top-1.5 right-1.5 text-[9px] bg-black/75 text-cyan-300 px-1.5 py-0.5 rounded font-mono border border-cyan-500/30">
+                    Video phụ ({subVideoPos.scale}%)
                   </span>
                 </div>
               )}

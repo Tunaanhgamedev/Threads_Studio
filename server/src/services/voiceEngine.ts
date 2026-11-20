@@ -3,12 +3,12 @@ import path from 'path';
 import { db } from '../db.js';
 import { Project, ScriptScene, AudioItem } from '../types.js';
 import { getStorageDir } from '../storagePath.js';
-import { getTTSProvider } from './ttsProviders/index.js';
+import { getTTSProvider, EdgeTTSProvider, GoogleTTSProvider, SyntheticProvider } from './ttsProviders/index.js';
 import { OllamaService } from './ollamaService.js';
 
 export class VoiceEngine {
   /**
-   * Generate audio for a single scene using active TTS Provider (Piper or Synthetic)
+   * Generate audio for a single scene using active TTS Provider (Edge, Piper, Google, or Synthetic)
    * and save to storage/audio/
    */
   static async generateSceneAudio(project: Project, scene: ScriptScene): Promise<AudioItem> {
@@ -22,10 +22,32 @@ export class VoiceEngine {
     const provider = await getTTSProvider();
 
     console.log(`[VoiceEngine] Synthesizing scene "${scene.title}" (${scene.id}) using ${provider.name}...`);
-    const { buffer, duration } = await provider.synthesize(scene.text, {
-      voice: scene.voice,
-      speed
-    });
+    
+    let buffer: Buffer;
+    let duration: number;
+
+    try {
+      const res = await provider.synthesize(scene.text, {
+        voice: scene.voice,
+        speed
+      });
+      buffer = res.buffer;
+      duration = res.duration;
+    } catch (err: any) {
+      console.warn(`[VoiceEngine] Primary provider failed for scene ${scene.id}: ${err.message}. Trying Google TTS...`);
+      try {
+        const google = new GoogleTTSProvider();
+        const res = await google.synthesize(scene.text, { voice: scene.voice, speed });
+        buffer = res.buffer;
+        duration = res.duration;
+      } catch (gErr: any) {
+        console.warn(`[VoiceEngine] Google TTS failed: ${gErr.message}. Falling back to synthetic audio...`);
+        const synth = new SyntheticProvider();
+        const res = await synth.synthesize(scene.text, { voice: scene.voice, speed });
+        buffer = res.buffer;
+        duration = res.duration;
+      }
+    }
 
     const audioId = `aud_${scene.id}_${Date.now()}`;
     const fileName = `${audioId}.wav`;

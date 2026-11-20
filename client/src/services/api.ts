@@ -276,5 +276,21 @@ export const api = {
     const data = await res.json();
     if (!data.success) throw new Error(data.error);
     return data;
+  },
+
+  // Media & Native Windows Folder Browser
+  async browseFolder(initialPath?: string, title?: string): Promise<string | null> {
+    const res = await fetch(`${API_BASE}/media/browse-folder`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ initialPath, title })
+    });
+    const data = await res.json();
+    return data.path || null;
+  },
+
+  async scanFolder(folder: string): Promise<{ success: boolean; exists: boolean; path: string; videoCount: number; audioCount: number; videoFiles?: string[]; audioFiles?: string[] }> {
+    const res = await fetch(`${API_BASE}/media/scan-folder?folder=${encodeURIComponent(folder)}`);
+    return await res.json();
   }
 };

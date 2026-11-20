@@ -9,6 +9,7 @@ import settingsRouter from './routes/settings.js';
 import screenshotsRouter from './routes/screenshots.js';
 import voiceRouter from './routes/voice.js';
 import templatesRouter from './routes/templates.js';
+import mediaRouter from './routes/media.js';
 import { getStorageDir } from './storagePath.js';
 
 export const app = express();
@@ -42,6 +43,7 @@ app.use('/api/projects', voiceRouter);
 app.use('/api/tts', ttsRouter);
 app.use('/api/settings', settingsRouter);
 app.use('/api/templates', templatesRouter);
+app.use('/api/media', mediaRouter);
 
 // Health check
 app.get('/api/health', (req, res) => {

@@ -396,27 +396,87 @@ export class VideoService {
     const filterParts: string[] = [];
     let nextInputIndex = 0;
 
-    // Input 0: Background video or color canvas
-    inputs.push('-f', 'lavfi', '-i', `color=c=0x070d19:s=${width}x${height}:d=${totalDuration.toFixed(2)}:r=30`);
-    const bgInputIdx = nextInputIndex++;
-    let bgFilter = `[${bgInputIdx}:v]drawgrid=width=120:height=120:thickness=2:color=white@0.08`;
-    if (project.config.effects?.vignette) {
-      bgFilter += `,vignette=PI/4`;
+    const VIDEO_EXTS = new Set(['.mp4', '.mov', '.mkv', '.webm', '.avi']);
+    const AUDIO_EXTS = new Set(['.mp3', '.wav', '.m4a', '.aac', '.ogg', '.flac']);
+
+    // 1. Detect background video from disk if configured
+    let bgVideoPath: string | null = null;
+    if (project.config.backgroundVideoFolder) {
+      const folderCandidate = path.normalize(project.config.backgroundVideoFolder);
+      if (fs.existsSync(folderCandidate)) {
+        if (fs.statSync(folderCandidate).isDirectory()) {
+          const files = fs.readdirSync(folderCandidate).filter(f => VIDEO_EXTS.has(path.extname(f).toLowerCase()));
+          if (files.length > 0) {
+            bgVideoPath = path.join(folderCandidate, files[Math.floor(Math.random() * files.length)]);
+          }
+        } else if (fs.statSync(folderCandidate).isFile()) {
+          bgVideoPath = folderCandidate;
+        }
+      }
     }
-    if (project.config.effects?.blurBackground) {
-      bgFilter += `,boxblur=10:5`;
+
+    if (bgVideoPath) {
+      this.appendLog(jobId, `Sử dụng video nền: ${path.basename(bgVideoPath)}`);
+      inputs.push('-stream_loop', '-1', '-i', bgVideoPath);
+      const bgInputIdx = nextInputIndex++;
+      let bgFilter = `[${bgInputIdx}:v]scale=${width}:${height}:force_original_aspect_ratio=increase,crop=${width}:${height},fps=30`;
+      if (project.config.effects?.blurBackground) {
+        bgFilter += `,boxblur=10:5`;
+      }
+      if (project.config.effects?.vignette) {
+        bgFilter += `,vignette=PI/4`;
+      }
+      bgFilter += `,colorlevels=rimax=0.82:gimax=0.82:bimax=0.82[bg]`;
+      filterParts.push(bgFilter);
+    } else {
+      // Fallback: dark clean canvas with subtle grid
+      inputs.push('-f', 'lavfi', '-i', `color=c=0x070d19:s=${width}x${height}:d=${totalDuration.toFixed(2)}:r=30`);
+      const bgInputIdx = nextInputIndex++;
+      let bgFilter = `[${bgInputIdx}:v]drawgrid=width=120:height=120:thickness=2:color=white@0.08`;
+      if (project.config.effects?.vignette) {
+        bgFilter += `,vignette=PI/4`;
+      }
+      if (project.config.effects?.blurBackground) {
+        bgFilter += `,boxblur=10:5`;
+      }
+      bgFilter += `[bg]`;
+      filterParts.push(bgFilter);
     }
-    bgFilter += `[bg]`;
-    filterParts.push(bgFilter);
     let currentV = '[bg]';
 
-    // Input 1: PIP Secondary video
+    // 2. Detect secondary (sub/PIP) video from disk if enabled
+    let subVideoPath: string | null = null;
+    if (subVideoEnabled && project.config.subVideoPosition?.folder) {
+      const subFolderCandidate = path.normalize(project.config.subVideoPosition.folder);
+      if (fs.existsSync(subFolderCandidate)) {
+        if (fs.statSync(subFolderCandidate).isDirectory()) {
+          const files = fs.readdirSync(subFolderCandidate).filter(f => VIDEO_EXTS.has(path.extname(f).toLowerCase()));
+          if (files.length > 0) {
+            subVideoPath = path.join(subFolderCandidate, files[Math.floor(Math.random() * files.length)]);
+          }
+        } else if (fs.statSync(subFolderCandidate).isFile()) {
+          subVideoPath = subFolderCandidate;
+        }
+      }
+    }
+
     if (subVideoEnabled) {
-      inputs.push('-f', 'lavfi', '-i', `testsrc2=s=${subVideoWidth}x${subVideoHeight}:r=30:d=${totalDuration.toFixed(2)}`);
-      const subInputIdx = nextInputIndex++;
-      filterParts.push(`[${subInputIdx}:v]drawbox=x=0:y=0:w=in_w:h=in_h:color=white@0.25:t=4[subv]`);
-      filterParts.push(`${currentV}[subv]overlay=${subVideoX}:${subVideoY}[v_pip]`);
-      currentV = '[v_pip]';
+      if (subVideoPath) {
+        this.appendLog(jobId, `Sử dụng video phụ: ${path.basename(subVideoPath)}`);
+        inputs.push('-stream_loop', '-1', '-i', subVideoPath);
+        const subInputIdx = nextInputIndex++;
+        filterParts.push(
+          `[${subInputIdx}:v]scale=${subVideoWidth}:${subVideoHeight}:force_original_aspect_ratio=increase,crop=${subVideoWidth}:${subVideoHeight},fps=30,drawbox=x=0:y=0:w=in_w:h=in_h:color=white@0.25:t=4[subv]`
+        );
+        filterParts.push(`${currentV}[subv]overlay=${subVideoX}:${subVideoY}[v_pip]`);
+        currentV = '[v_pip]';
+      } else {
+        inputs.push('-f', 'lavfi', '-i', `testsrc2=s=${subVideoWidth}x${subVideoHeight}:r=30:d=${totalDuration.toFixed(2)}`);
+        const subInputIdx = nextInputIndex++;
+        filterParts.push(`[${subInputIdx}:v]drawbox=x=0:y=0:w=in_w:h=in_h:color=white@0.25:t=4[subv]`);
+        filterParts.push(`${currentV}[subv]overlay=${subVideoX}:${subVideoY}[v_pip]`);
+        currentV = '[v_pip]';
+      }
     }
 
     // Audio inputs and concatenation with volume mixing per scene
@@ -527,6 +587,34 @@ export class VideoService {
     const finalV = '[v_out]';
     filterParts.push(`${currentV}ass=${relAssPath}${finalV}`);
 
+    // Mix Background Music if configured
+    let musicPath: string | null = null;
+    const musicFolder = project.config.backgroundMusic?.folder;
+    if (musicFolder) {
+      const musicCandidate = path.normalize(musicFolder);
+      if (fs.existsSync(musicCandidate)) {
+        if (fs.statSync(musicCandidate).isDirectory()) {
+          const files = fs.readdirSync(musicCandidate).filter(f => AUDIO_EXTS.has(path.extname(f).toLowerCase()));
+          if (files.length > 0) {
+            musicPath = path.join(musicCandidate, files[Math.floor(Math.random() * files.length)]);
+          }
+        } else if (fs.statSync(musicCandidate).isFile()) {
+          musicPath = musicCandidate;
+        }
+      }
+    }
+
+    let finalAudioTag = '[v_audio]';
+    if (musicPath) {
+      this.appendLog(jobId, `Trộn nhạc nền: ${path.basename(musicPath)}`);
+      inputs.push('-stream_loop', '-1', '-i', musicPath);
+      const musicInputIdx = nextInputIndex++;
+      const musicVol = ((project.config.backgroundMusic?.volume ?? 20) / 100).toFixed(2);
+      filterParts.push(`[${musicInputIdx}:a]volume=${musicVol}[a_bgm]`);
+      filterParts.push(`[v_audio][a_bgm]amix=inputs=2:duration=first:dropout_transition=2[a_final]`);
+      finalAudioTag = '[a_final]';
+    }
+
     const filterComplex = filterParts.join('; ');
 
     const args = [
@@ -534,7 +622,7 @@ export class VideoService {
       ...inputs,
       '-filter_complex', filterComplex,
       '-map', finalV,
-      '-map', '[v_audio]',
+      '-map', finalAudioTag,
       '-c:v', 'libx264',
       '-preset', 'veryfast',
       '-crf', '22',
