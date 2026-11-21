@@ -11,6 +11,7 @@ import { AIIntelligenceView } from './views/AIIntelligenceView';
 import { ContentExperimentView } from './views/ContentExperimentView';
 import { MultiChannelView } from './views/MultiChannelView';
 import { ReliabilityView } from './views/ReliabilityView';
+import { DesktopManagementView } from './views/DesktopManagementView';
 import { DashboardView } from './views/DashboardView';
 import { SourcesView } from './views/SourcesView';
 import { CommentsView } from './views/CommentsView';
@@ -252,6 +253,10 @@ export const App: React.FC = () => {
 
         {activeTab === 'reliability' && (
           <ReliabilityView />
+        )}
+
+        {activeTab === 'desktop' && (
+          <DesktopManagementView />
         )}
 
         {activeTab === 'dashboard' && (

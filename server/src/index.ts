@@ -18,6 +18,7 @@ import aiIntelligenceRouter from './routes/aiIntelligence.js';
 import experimentsRouter from './routes/experiments.js';
 import { channelsRouter } from './routes/channels.js';
 import { reliabilityRouter } from './routes/reliability.js';
+import { desktopRouter } from './routes/desktop.js';
 import { ThreadsApiService } from './services/threadsApiService.js';
 import { DiscoveryService } from './services/discoveryService.js';
 import { getStorageDir } from './storagePath.js';
@@ -62,6 +63,7 @@ app.use('/api/intelligence', aiIntelligenceRouter);
 app.use('/api/experiments', experimentsRouter);
 app.use('/api/channels', channelsRouter);
 app.use('/api/reliability', reliabilityRouter);
+app.use('/api/desktop', desktopRouter);
 
 // Health check
 app.get('/api/health', (req, res) => {

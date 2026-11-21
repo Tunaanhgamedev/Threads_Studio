@@ -1,0 +1,59 @@
+{
+  "$schema": "https://raw.githubusercontent.com/electron-userland/electron-builder/master/packages/app-builder-lib/scheme.json",
+  "appId": "com.threads.contentstudio",
+  "productName": "Threads Content Studio",
+  "copyright": "Copyright © 2026 Threads Content Studio Team",
+  "directories": {
+    "output": "../release",
+    "buildResources": "assets"
+  },
+  "protocols": [
+    {
+      "name": "Threads Studio Protocol",
+      "schemes": ["threads-studio"]
+    }
+  ],
+  "files": [
+    "dist/**/*",
+    "package.json",
+    {
+      "from": "../client/dist",
+      "to": "client/dist",
+      "filter": ["**/*"]
+    },
+    {
+      "from": "../server/dist",
+      "to": "server/dist",
+      "filter": ["**/*"]
+    },
+    {
+      "from": "../server/package.json",
+      "to": "server/package.json"
+    }
+  ],
+  "extraResources": [
+    {
+      "from": "../prisma",
+      "to": "prisma",
+      "filter": ["**/*"]
+    }
+  ],
+  "win": {
+    "target": [
+      {
+        "target": "nsis",
+        "arch": ["x64"]
+      }
+    ]
+  },
+  "nsis": {
+    "oneClick": false,
+    "perMachine": false,
+    "allowToChangeInstallationDirectory": true,
+    "createDesktopShortcut": true,
+    "createStartMenuShortcut": true,
+    "shortcutName": "Threads Content Studio",
+    "deleteAppDataOnUninstall": false,
+    "runAfterFinish": true
+  }
+}

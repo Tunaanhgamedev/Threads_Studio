@@ -30,7 +30,10 @@ import {
   SystemBackupItem,
   CreateBackupDto,
   BackupScheduleConfig,
-  SystemLogEntry
+  SystemLogEntry,
+  DesktopStatus,
+  DesktopServicesStatus,
+  ChangeStorageDirResult
 } from '../types';
 
 const API_BASE = '/api';
@@ -1040,5 +1043,56 @@ export const api = {
     const data = await fetchJson<{ success: boolean; data: SystemLogEntry[]; error?: string }>(`${API_BASE}/reliability/logs${query}`);
     if (!data.success) throw new Error(data.error);
     return data.data || [];
+  },
+
+  // ==================== Phase 16: Windows Desktop App Management ====================
+  async getDesktopStatus(): Promise<DesktopStatus> {
+    const data = await fetchJson<{ success: boolean; data: DesktopStatus; error?: string }>(`${API_BASE}/desktop/status`);
+    if (!data.success) throw new Error(data.error);
+    return data.data;
+  },
+
+  async getDesktopServices(): Promise<DesktopServicesStatus> {
+    const data = await fetchJson<{ success: boolean; data: DesktopServicesStatus; error?: string }>(`${API_BASE}/desktop/services`);
+    if (!data.success) throw new Error(data.error);
+    return data.data;
+  },
+
+  async managePiperService(action: 'start' | 'stop'): Promise<{ success: boolean; message: string }> {
+    const data = await fetchJson<{ success: boolean; message: string; error?: string }>(`${API_BASE}/desktop/services/piper`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ action })
+    });
+    if (!data.success) throw new Error(data.error);
+    return data;
+  },
+
+  async manageOllamaService(action: 'start' | 'stop'): Promise<{ success: boolean; message: string }> {
+    const data = await fetchJson<{ success: boolean; message: string; error?: string }>(`${API_BASE}/desktop/services/ollama`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ action })
+    });
+    if (!data.success) throw new Error(data.error);
+    return data;
+  },
+
+  async changeStorageDir(newDir: string, copyData: boolean = true): Promise<ChangeStorageDirResult> {
+    const data = await fetchJson<{ success: boolean; data: ChangeStorageDirResult; error?: string }>(`${API_BASE}/desktop/change-storage-dir`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ newDir, copyData })
+    });
+    if (!data.success) throw new Error(data.error);
+    return data.data;
+  },
+
+  async shutdownDesktop(): Promise<{ success: boolean; message: string }> {
+    const data = await fetchJson<{ success: boolean; message: string; error?: string }>(`${API_BASE}/desktop/shutdown`, {
+      method: 'POST'
+    });
+    if (!data.success) throw new Error(data.error);
+    return data;
   }
 };

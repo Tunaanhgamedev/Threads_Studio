@@ -31,9 +31,18 @@ Short-form platforms (**TikTok Creativity Program Beta, YouTube Shorts Monetizat
 
 ---
 
-## ⚡ Complete Phase Architecture (Phase 1 – Phase 15)
+## ⚡ Complete Phase Architecture (Phase 1 – Phase 16)
 
-### 🛡️ Phase 15: System Reliability, Security & Backup Center (NEW)
+### 🪟 Phase 16: Windows Desktop App (Electron & NSIS Installer) (NEW)
+* **Electron 45 Desktop Architecture:** Packaged desktop framework wrapping React frontend and Express backend into an integrated native Windows 10/11 application.
+* **Autonomous Backend Lifecycle Management:** Automatically launches local Express backend server (port 3210) upon startup and executes graceful shutdown (closing SQLite connections, releasing locks, and terminating child processes) on app exit.
+* **Complete Data Isolation (Drive D / E Custom Storage):** Database (`threads_studio.sqlite`), generated MP4 videos, screenshots, audio, and backups are stored completely outside `Program Files`. 1-Click data migration to custom paths (e.g. `D:\Threads_Studio_Data` or `E:\Threads_Studio_Data`) with persistent user settings saved in `%APPDATA%\threads-content-studio\config.json`.
+* **Database & Workspace Preservation Across Upgrades:** Custom NSIS installer configured with `deleteAppDataOnUninstall: false` ensuring zero data loss when upgrading to newer software releases.
+* **Integrated Local Services Controller:** In-app GUI management to start, stop, and inspect background local AI & TTS engines (Piper TTS server on port 5000, Ollama Local AI on port 11434).
+* **OAuth Deep Link Protocol (`threads-studio://`):** Registered custom URL protocol enabling seamless browser OAuth authentication callbacks directly into the desktop application.
+* **Automated Windows NSIS x64 Installer Build Script (`.\desktop\build.ps1`):** End-to-end PowerShell script automating dependency resolution, Prisma client generation, frontend/backend builds, Chromium packaging, and NSIS installer generation in `release/`.
+
+### 🛡️ Phase 15: System Reliability, Security & Backup Center
 * **SQLite PRAGMA Health Checks:** Atomic SQLite verification (`PRAGMA quick_check;`), query latency benchmarking (ms), and database integrity validation.
 * **Full-Stack Dependency & Service Diagnostics:** Automated real-time status diagnostics for FFmpeg/FFprobe, Piper & VieNeu Voice TTS, Ollama Local AI (`http://localhost:11434`), Playwright Chromium headless engine, OAuth API token configurations, and active processing queues.
 * **Hot Atomic SQLite Backup via `VACUUM INTO`:** Safe snapshot creation using SQLite's native atomic hot backup mechanism that never locks or corrupts the database during active rendering or concurrent operations.

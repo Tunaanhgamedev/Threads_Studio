@@ -772,3 +772,41 @@ export interface SystemLogEntry {
   message: string;
   details?: any;
 }
+
+// Phase 16 - Windows Desktop App Management
+export interface DesktopStatus {
+  platform: string;
+  arch: string;
+  nodeVersion: string;
+  pid: number;
+  uptimeSeconds: number;
+  port: number;
+  storageDir: string;
+  isCustomStorageDir: boolean;
+  configFilePath: string;
+  deepLinkProtocol: string;
+  deepLinkActive: boolean;
+}
+
+export interface DesktopServicesStatus {
+  piper: {
+    running: boolean;
+    port: number;
+    url: string;
+    details?: any;
+  };
+  ollama: {
+    running: boolean;
+    port: number;
+    url: string;
+    details?: any;
+  };
+}
+
+export interface ChangeStorageDirResult {
+  success: boolean;
+  oldDir: string;
+  newDir: string;
+  filesCopied: number;
+  message: string;
+}

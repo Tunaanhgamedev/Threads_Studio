@@ -1,12 +1,15 @@
 {
   "name": "threads-content-studio",
-  "version": "1.0.0",
+  "version": "0.16.0",
   "private": true,
-  "description": "Threads Content Studio - Tự động hóa sản xuất video từ nội dung Threads",
+  "description": "Threads Content Studio - Tự động hóa sản xuất video từ nội dung Threads (Windows Desktop Edition)",
   "scripts": {
     "dev": "concurrently -n \"SERVER,CLIENT\" -c \"blue,green\" \"pnpm --filter threads-studio-server dev\" \"pnpm --filter threads-studio-client dev\"",
+    "dev:desktop": "concurrently -n \"SERVER,CLIENT,DESKTOP\" -c \"blue,green,magenta\" \"pnpm --filter threads-studio-server dev\" \"pnpm --filter threads-studio-client dev\" \"pnpm --filter threads-studio-desktop dev\"",
     "build": "pnpm --filter threads-studio-client build && pnpm --filter threads-studio-server build",
-    "start": "pnpm --filter threads-studio-server start"
+    "build:desktop": "powershell -ExecutionPolicy Bypass -File ./desktop/build.ps1",
+    "start": "pnpm --filter threads-studio-server start",
+    "start:desktop": "pnpm --filter threads-studio-desktop start"
   },
   "devDependencies": {
     "concurrently": "^9.1.2"

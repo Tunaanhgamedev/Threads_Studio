@@ -1,0 +1,20 @@
+{
+  "name": "threads-studio-desktop",
+  "version": "0.16.0",
+  "private": true,
+  "description": "Threads Content Studio Desktop Shell for Windows",
+  "main": "dist/main.js",
+  "scripts": {
+    "build": "tsc",
+    "dev": "tsc -w",
+    "start": "electron dist/main.js",
+    "pack": "electron-builder --dir",
+    "dist": "electron-builder --win nsis --x64"
+  },
+  "devDependencies": {
+    "@types/node": "^22.13.5",
+    "electron": "^34.0.0",
+    "electron-builder": "^25.1.8",
+    "typescript": "^5.7.3"
+  }
+}
