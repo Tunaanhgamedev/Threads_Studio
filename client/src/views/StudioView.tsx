@@ -22,7 +22,10 @@ import {
   Check,
   RefreshCw,
   Wand2,
-  Film
+  Film,
+  Phone,
+  Video,
+  ImagePlus
 } from 'lucide-react';
 import confetti from 'canvas-confetti';
 import { Project, ThreadComment, VideoConfig, StudioTemplate, WatermarkConfig, VideoEffectsConfig, SubtitleStyleConfig, ScriptScene, AudioItem } from '../types';
@@ -42,9 +45,9 @@ export const StudioView: React.FC<StudioViewProps> = ({
 }) => {
   const defaultCardPos = {
     x: 50.0,
-    y: 28.0,
-    scale: 105.0,
-    borderRadius: 16,
+    y: 38.0,
+    scale: 100.0,
+    borderRadius: 20,
     bgStyle: 'white' as const
   };
 
@@ -53,10 +56,11 @@ export const StudioView: React.FC<StudioViewProps> = ({
     x: 50.0,
     y: 65.0,
     scale: 110.0,
-    borderRadius: 12,
+    borderRadius: 16,
     folder: '',
     mute: true,
-    loop: true
+    loop: true,
+    layoutMode: 'fullscreen' as const
   };
 
   // Local active form state
@@ -285,6 +289,49 @@ export const StudioView: React.FC<StudioViewProps> = ({
     }
   };
 
+  const handleAddPostMedia = async () => {
+    const url = prompt('Nhập link ảnh hoặc URL meme cho thẻ bài viết (PNG, JPG, WebP):', 'https://images.unsplash.com/photo-1518770660439-4636190af475?w=800');
+    if (!url) return;
+    const currentUrls = project.post?.mediaUrls || [];
+    const newUrls = [...currentUrls, url.trim()];
+    const updatedProject = {
+      ...project,
+      post: {
+        ...project.post,
+        mediaUrls: newUrls
+      }
+    };
+    onUpdateProject(updatedProject);
+    try {
+      await api.updateProject(project.id, {
+        post: { mediaUrls: newUrls }
+      });
+      setLogs(prev => [...prev, `[${new Date().toLocaleTimeString()}] Đã thêm ảnh vào thẻ bài viết`]);
+    } catch (e) {
+      console.warn('Failed to save media url to backend:', e);
+    }
+  };
+
+  const handleRemovePostMedia = async (idxToRemove: number) => {
+    const currentUrls = project.post?.mediaUrls || [];
+    const newUrls = currentUrls.filter((_, i) => i !== idxToRemove);
+    const updatedProject = {
+      ...project,
+      post: {
+        ...project.post,
+        mediaUrls: newUrls
+      }
+    };
+    onUpdateProject(updatedProject);
+    try {
+      await api.updateProject(project.id, {
+        post: { mediaUrls: newUrls }
+      });
+    } catch (e) {
+      console.warn('Failed to save media url to backend:', e);
+    }
+  };
+
   // Sync state when project changes
   useEffect(() => {
     setThreadsUrl(project.threadsUrl);
@@ -302,7 +349,11 @@ export const StudioView: React.FC<StudioViewProps> = ({
     setBgMusicFolder(project.config.backgroundMusic.folder);
     setBgMusicVolume(project.config.backgroundMusic.volume);
     setCardPos(project.config.cardPosition);
-    setSubVideoPos(project.config.subVideoPosition);
+    setSubVideoPos({
+      ...defaultSubVideoPos,
+      ...(project.config.subVideoPosition || {}),
+      layoutMode: project.config.subVideoPosition?.layoutMode || 'fullscreen'
+    });
     setAspectRatio(project.config.aspectRatio);
     setPostContent(project.post.content);
 
@@ -356,7 +407,8 @@ export const StudioView: React.FC<StudioViewProps> = ({
       subVideoPosition: {
         ...subVideoPos,
         enabled: subVideoEnabled,
-        folder: subVideoFolder
+        folder: subVideoFolder,
+        layoutMode: subVideoPos.layoutMode || 'fullscreen'
       },
       backgroundVideoFolder: bgVideoFolder,
       backgroundMusic: {
@@ -393,7 +445,12 @@ export const StudioView: React.FC<StudioViewProps> = ({
     setSelectedTemplateId(tmpl.id);
     setAspectRatio(tmpl.aspectRatio);
     setCardPos(tmpl.cardPosition);
-    setSubVideoPos({ ...tmpl.subVideoPosition, folder: subVideoFolder });
+    setSubVideoPos({
+      ...defaultSubVideoPos,
+      ...tmpl.subVideoPosition,
+      folder: subVideoFolder,
+      layoutMode: tmpl.subVideoPosition?.layoutMode || 'fullscreen'
+    });
     setWatermark(tmpl.watermark);
     setEffects(tmpl.effects);
     setSubtitleStyle(tmpl.subtitleStyle);
@@ -546,9 +603,9 @@ export const StudioView: React.FC<StudioViewProps> = ({
     if (positionTab === 'card') {
       setCardPos({
         x: 50.0,
-        y: 28.0,
-        scale: 105.0,
-        borderRadius: 16,
+        y: 38.0,
+        scale: 100.0,
+        borderRadius: 20,
         bgStyle: 'white'
       });
     } else {
@@ -557,10 +614,11 @@ export const StudioView: React.FC<StudioViewProps> = ({
         x: 50.0,
         y: 65.0,
         scale: 110.0,
-        borderRadius: 12,
+        borderRadius: 16,
         folder: '',
         mute: true,
-        loop: true
+        loop: true,
+        layoutMode: 'fullscreen'
       });
     }
   };
@@ -895,54 +953,8 @@ export const StudioView: React.FC<StudioViewProps> = ({
               <span className="text-[10px] text-slate-400 font-normal">Tự động lặp & căn chỉnh</span>
             </h3>
 
-            {/* Video nền */}
+            {/* Video minh họa (Gameplay / Minecraft / Satisfying) */}
             <div>
-              <div className="flex items-center justify-between mb-1">
-                <label className="block text-[11px] text-slate-400">Video nền (Thư mục ngẫu nhiên hoặc 1 file video)</label>
-                {bgVideoInfo.checked && (
-                  <span className={`text-[10px] font-mono font-medium ${bgVideoInfo.exists && (bgVideoInfo.count > 0 || bgVideoInfo.isFile) ? 'text-emerald-400' : 'text-amber-400'}`}>
-                    {bgVideoInfo.exists ? (bgVideoInfo.isFile ? '✓ File video sẵn sàng' : `✓ ${bgVideoInfo.count} video sẵn sàng`) : '⚠ Chưa thấy file video'}
-                  </span>
-                )}
-              </div>
-              <div className="flex gap-2">
-                <input
-                  type="text"
-                  value={bgVideoFolder}
-                  placeholder="Chọn thư mục hoặc file video nền..."
-                  onChange={(e) => setBgVideoFolder(e.target.value)}
-                  className="flex-1 bg-[#152542] border border-[#213b63] rounded-xl px-3 py-1.5 text-xs text-slate-200 font-mono truncate focus:outline-none focus:border-blue-500"
-                />
-                <button 
-                  onClick={handleBrowseBgVideoFile}
-                  className="bg-[#1b2f52] hover:bg-[#233d6b] text-slate-200 px-2.5 py-1.5 rounded-xl text-xs font-semibold border border-[#254370] transition shrink-0 flex items-center gap-1.5 cursor-pointer active:scale-95"
-                  title="Chọn 1 file video nền cụ thể (.mp4, .mov, .mkv)"
-                >
-                  <Film size={13} className="text-cyan-400" />
-                  <span>Chọn file</span>
-                </button>
-                <button 
-                  onClick={handleBrowseBgVideo}
-                  className="bg-[#1b2f52] hover:bg-[#233d6b] text-slate-200 px-2.5 py-1.5 rounded-xl text-xs font-semibold border border-[#254370] transition shrink-0 flex items-center gap-1.5 cursor-pointer active:scale-95"
-                  title="Chọn thư mục chứa nhiều video nền"
-                >
-                  <FolderOpen size={13} className="text-blue-400" />
-                  <span>Chọn thư mục</span>
-                </button>
-                <button
-                  type="button"
-                  onClick={handleUseSampleMedia}
-                  className="bg-blue-600/20 hover:bg-blue-600/30 text-blue-300 px-2.5 py-1.5 rounded-xl text-xs font-semibold border border-blue-500/40 transition shrink-0 flex items-center gap-1 cursor-pointer active:scale-95"
-                  title="Dùng video nền mẫu có sẵn"
-                >
-                  <Sparkles size={12} className="text-blue-400" />
-                  <span>Dùng mẫu</span>
-                </button>
-              </div>
-            </div>
-
-            {/* Video phụ */}
-            <div className="pt-2 border-t border-[#182b47]">
               <div className="flex items-center justify-between mb-1">
                 <label className="flex items-center gap-2 text-xs font-semibold text-slate-200 cursor-pointer select-none">
                   <input
@@ -951,29 +963,32 @@ export const StudioView: React.FC<StudioViewProps> = ({
                     onChange={(e) => setSubVideoEnabled(e.target.checked)}
                     className="w-3.5 h-3.5 rounded bg-[#172744] border-[#253f68] text-blue-600 focus:ring-0 cursor-pointer"
                   />
-                  <span>Video phụ (Meme / Satisfying / Gameplay)</span>
+                  <span>Video phụ minh họa (Gameplay Minecraft / Satisfying)</span>
                 </label>
-                {subVideoEnabled && subVideoInfo.checked && (
-                  <span className={`text-[10px] font-mono font-medium ${subVideoInfo.exists && (subVideoInfo.count > 0 || subVideoInfo.isFile) ? 'text-emerald-400' : 'text-amber-400'}`}>
-                    {subVideoInfo.exists ? (subVideoInfo.isFile ? '✓ File video phụ' : `✓ ${subVideoInfo.count} video`) : '⚠ Chưa thấy video'}
+                {subVideoEnabled && (
+                  <span className="text-[10px] font-mono font-medium text-emerald-400">
+                    ✓ Bật (Chạy nền dọc 100%)
                   </span>
                 )}
               </div>
 
-              {subVideoEnabled && (
-                <div className="space-y-2 pl-5 mt-1.5">
+              {subVideoEnabled ? (
+                <div className="space-y-2 mt-1.5 pl-5">
                   <div className="flex gap-2">
                     <input
                       type="text"
-                      value={subVideoFolder}
-                      placeholder="Chọn thư mục hoặc file video phụ..."
-                      onChange={(e) => setSubVideoFolder(e.target.value)}
+                      value={subVideoFolder || bgVideoFolder}
+                      placeholder="Chọn thư mục hoặc file video (D:/TOOL/NGUỒN...)..."
+                      onChange={(e) => {
+                        setSubVideoFolder(e.target.value);
+                        setBgVideoFolder(e.target.value);
+                      }}
                       className="flex-1 bg-[#152542] border border-[#213b63] rounded-xl px-3 py-1.5 text-xs text-slate-200 font-mono truncate focus:outline-none focus:border-blue-500"
                     />
                     <button 
                       onClick={handleBrowseSubVideoFile}
                       className="bg-[#1b2f52] hover:bg-[#233d6b] text-slate-200 px-2.5 py-1.5 rounded-xl text-xs font-semibold border border-[#254370] transition shrink-0 flex items-center gap-1.5 cursor-pointer active:scale-95"
-                      title="Chọn 1 file video phụ cụ thể (.mp4, .mov, .mkv)"
+                      title="Chọn 1 file video cụ thể (.mp4, .mov, .mkv)"
                     >
                       <Film size={13} className="text-cyan-400" />
                       <span>Chọn file</span>
@@ -990,14 +1005,21 @@ export const StudioView: React.FC<StudioViewProps> = ({
                       type="button"
                       onClick={handleUseSampleMedia}
                       className="bg-cyan-950/60 hover:bg-cyan-900/80 text-cyan-300 px-2.5 py-1.5 rounded-xl text-xs font-semibold border border-cyan-500/40 transition shrink-0 flex items-center gap-1 cursor-pointer active:scale-95"
-                      title="Sử dụng video phụ mẫu (Satisfying / Gameplay có sẵn)"
+                      title="Sử dụng video mẫu có sẵn"
                     >
                       <Sparkles size={12} className="text-cyan-400" />
                       <span>Dùng mẫu</span>
                     </button>
                   </div>
-                  <p className="text-[11px] text-slate-400">Tắt tiếng · Ngẫu nhiên · Tự lặp đủ thời lượng theo video chính</p>
+                  <div className="flex items-center justify-between text-[11px] text-slate-400">
+                    <span>Tắt tiếng · Tự lặp · Chiếm 100% màn hình dọc phía sau thẻ</span>
+                    {(subVideoInfo.exists || bgVideoInfo.exists) && (
+                      <span className="text-emerald-400 font-medium">✓ Đã nhận diện video</span>
+                    )}
+                  </div>
                 </div>
+              ) : (
+                <p className="text-[11px] text-slate-500 pl-5 mt-1">Đã tắt video phụ. Video sẽ xuất trên nền màu tối sang trọng.</p>
               )}
             </div>
 
@@ -1093,6 +1115,7 @@ export const StudioView: React.FC<StudioViewProps> = ({
                       onChange={(e) => setWatermark({ ...watermark, position: e.target.value as any })}
                       className="bg-[#152542] border border-[#213b63] rounded-xl px-2.5 py-1.5 text-xs text-slate-200 focus:outline-none"
                     >
+                      <option value="top_center">Chính giữa phía trên (Top Center)</option>
                       <option value="top_right">Góc phải trên</option>
                       <option value="top_left">Góc trái trên</option>
                       <option value="bottom_right">Góc phải dưới</option>
@@ -1270,23 +1293,35 @@ export const StudioView: React.FC<StudioViewProps> = ({
                   : 'w-[420px] h-[420px]'
               }`}
             >
-              {/* Background Video Preview */}
-              {bgVideoFolder && bgVideoInfo.exists && (bgVideoInfo.count > 0 || bgVideoInfo.isFile) && !bgVideoLoadError && (
-                <video
-                  key={bgVideoFolder}
-                  src={`/api/media/stream-local?folder=${encodeURIComponent(bgVideoFolder)}&type=video`}
-                  autoPlay
-                  loop
-                  muted
-                  playsInline
-                  onError={() => setBgVideoLoadError(true)}
-                  className="absolute inset-0 w-full h-full object-cover pointer-events-none"
-                  style={{
-                    filter: `${effects.blurBackground ? 'blur(6px)' : 'none'} ${effects.vignette ? 'brightness(0.7)' : 'brightness(0.85)'}`
-                  }}
-                />
+              {/* Background Video Preview (Gameplay / Minecraft / Satisfying) */}
+              {subVideoEnabled && (
+                (subVideoFolder || bgVideoFolder) ? (
+                  <video
+                    key={subVideoFolder || bgVideoFolder}
+                    src={`/api/media/stream-local?folder=${encodeURIComponent(subVideoFolder || bgVideoFolder)}&type=video`}
+                    autoPlay
+                    loop
+                    muted
+                    playsInline
+                    onError={() => setSubVideoLoadError(true)}
+                    className="absolute inset-0 w-full h-full object-cover pointer-events-none z-0"
+                    style={{
+                      filter: `${effects.blurBackground ? 'blur(6px)' : 'none'} ${effects.vignette ? 'brightness(0.7)' : 'brightness(0.85)'}`
+                    }}
+                  />
+                ) : (
+                  <video
+                    src="/api/media/stream-local?folder=storage%2Fsample_media%2Fvideos&type=video"
+                    autoPlay
+                    loop
+                    muted
+                    playsInline
+                    className="absolute inset-0 w-full h-full object-cover pointer-events-none z-0 brightness-75"
+                  />
+                )
               )}
-              <div className="absolute inset-0 bg-gradient-to-b from-blue-950/20 via-transparent to-slate-950/80 pointer-events-none" />
+              {/* Subtle ambient contrast overlay */}
+              <div className="absolute inset-0 bg-gradient-to-b from-black/25 via-transparent to-black/45 pointer-events-none z-[1]" />
 
               {/* 1. Dynamic Threads Card (Post or Comment) */}
               <div
@@ -1305,29 +1340,30 @@ export const StudioView: React.FC<StudioViewProps> = ({
                       : 'rgba(15, 23, 42, 0.75)',
                   color: cardPos.bgStyle === 'white' ? '#0f172a' : '#f8fafc',
                   backdropFilter: cardPos.bgStyle === 'transparent' ? 'blur(12px)' : 'none',
-                  border: cardPos.bgStyle === 'white' ? '1px solid #e2e8f0' : '1px solid #1e3356'
+                  border: cardPos.bgStyle === 'white' ? '1px solid rgba(226, 232, 240, 0.9)' : '1px solid #1e3356'
                 }}
-                className={`w-[88%] p-3.5 shadow-2xl transition-all duration-150 select-none cursor-pointer z-20 ${
+                className={`w-[88%] p-4 shadow-[0_25px_60px_-15px_rgba(0,0,0,0.55)] transition-all duration-150 select-none cursor-pointer z-20 ${
                   positionTab === 'card' ? 'ring-2 ring-blue-500 ring-offset-2 ring-offset-slate-950' : ''
                 }`}
               >
-                {/* Threads Author Bar */}
-                <div className="flex items-center justify-between mb-2">
+                {/* Header: iOS Chat / Threads Hybrid Bar */}
+                <div className="flex items-center justify-between pb-2.5 mb-2.5 border-b border-slate-100/80">
                   <div className="flex items-center gap-2">
+                    <span className="text-slate-400 font-bold text-sm select-none mr-0.5 hover:text-slate-600 transition">‹</span>
                     <img 
                       src={isViewingPost ? project.post.avatar : currentComment?.avatar} 
                       alt="Avatar"
-                      className="w-8 h-8 rounded-full border border-slate-300/40 object-cover" 
+                      className="w-8 h-8 rounded-full border border-slate-200/80 object-cover shadow-sm ring-1 ring-slate-100" 
                     />
                     <div>
-                      <div className="flex items-center gap-1">
+                      <div className="flex items-center gap-1.5">
                         <span className="font-bold text-xs">
                           {maskAuthor 
                             ? 'Người dùng ẩn danh' 
                             : (isViewingPost ? project.post.displayName : currentComment?.displayName)}
                         </span>
                         {project.post.verified && !maskAuthor && (
-                          <div className="w-3.5 h-3.5 rounded-full bg-blue-500 text-white flex items-center justify-center text-[9px]">
+                          <div className="w-3.5 h-3.5 rounded-full bg-blue-500 text-white flex items-center justify-center text-[9px] font-bold">
                             ✓
                           </div>
                         )}
@@ -1338,18 +1374,52 @@ export const StudioView: React.FC<StudioViewProps> = ({
                     </div>
                   </div>
 
-                  <span className="text-[10px] opacity-60 font-mono">
-                    {isViewingPost ? project.post.timestamp : currentComment?.timestamp}
-                  </span>
+                  <div className="flex items-center gap-2.5 text-slate-600">
+                    <Phone size={13} className="hover:text-blue-500 transition cursor-pointer" />
+                    <Video size={14} className="hover:text-blue-500 transition cursor-pointer" />
+                  </div>
                 </div>
 
                 {/* Content */}
-                <div className="text-xs leading-relaxed mb-3 font-medium">
+                <div className="text-xs leading-relaxed mb-2.5 font-medium">
                   {isViewingPost ? postContent : currentComment?.content}
                 </div>
 
+                {/* Media attachments inside Card */}
+                {isViewingPost && project.post?.mediaUrls && project.post.mediaUrls.length > 0 && (
+                  <div className="space-y-1.5 my-2">
+                    {project.post.mediaUrls.map((url, i) => (
+                      <div key={i} className="relative group rounded-xl overflow-hidden border border-slate-200/80 shadow-sm">
+                        <img src={url} alt="Card media" className="w-full max-h-48 object-cover" />
+                        <button
+                          type="button"
+                          onClick={(e) => { e.stopPropagation(); handleRemovePostMedia(i); }}
+                          className="absolute top-1.5 right-1.5 w-5 h-5 rounded-full bg-black/70 hover:bg-red-600 text-white flex items-center justify-center text-[10px] opacity-0 group-hover:opacity-100 transition cursor-pointer"
+                          title="Xóa ảnh"
+                        >
+                          ✕
+                        </button>
+                      </div>
+                    ))}
+                  </div>
+                )}
+
+                {/* Quick Add Media Button inside Card */}
+                {isViewingPost && (
+                  <div className="flex justify-end mb-1">
+                    <button
+                      type="button"
+                      onClick={(e) => { e.stopPropagation(); handleAddPostMedia(); }}
+                      className="text-[10px] text-blue-600 hover:text-blue-700 font-semibold flex items-center gap-1 hover:underline cursor-pointer"
+                    >
+                      <ImagePlus size={11} />
+                      <span>+ Thêm ảnh / meme vào thẻ</span>
+                    </button>
+                  </div>
+                )}
+
                 {/* Interactive Threads Reactions Bar */}
-                <div className="flex items-center justify-between pt-1 border-t border-slate-200/20 text-[11px] opacity-80">
+                <div className="flex items-center justify-between pt-2 border-t border-slate-200/40 text-[11px] opacity-80">
                   <div className="flex items-center gap-3">
                     <span className="flex items-center gap-1 hover:text-red-500 transition cursor-pointer">
                       <Heart size={13} className="text-red-500 fill-red-500" />
@@ -1368,8 +1438,8 @@ export const StudioView: React.FC<StudioViewProps> = ({
                 </div>
               </div>
 
-              {/* 2. Secondary Video (Video Phụ) Overlay */}
-              {subVideoEnabled && (
+              {/* 2. Secondary Video (PIP Box) ONLY when layoutMode is 'pip' */}
+              {subVideoEnabled && subVideoPos.layoutMode === 'pip' && (
                 <div
                   onClick={() => setPositionTab('subVideo')}
                   style={{
@@ -1383,57 +1453,15 @@ export const StudioView: React.FC<StudioViewProps> = ({
                     positionTab === 'subVideo' ? 'ring-2 ring-cyan-400 ring-offset-2 ring-offset-slate-950' : 'border border-cyan-500/40'
                   }`}
                 >
-                  {subVideoFolder && subVideoInfo.exists && (subVideoInfo.count > 0 || subVideoInfo.isFile) && !subVideoLoadError ? (
-                    <video
-                      key={subVideoFolder}
-                      src={`/api/media/stream-local?folder=${encodeURIComponent(subVideoFolder)}&type=video`}
-                      autoPlay
-                      loop
-                      muted
-                      playsInline
-                      onError={() => setSubVideoLoadError(true)}
-                      className="w-full h-full object-cover pointer-events-none"
-                    />
-                  ) : (
-                    <div className="absolute inset-0 bg-gradient-to-tr from-cyan-950 via-slate-900 to-blue-900 opacity-95 flex flex-col items-center justify-center p-3 text-center border-2 border-dashed border-cyan-400/50">
-                      <div className="w-8 h-8 rounded-full bg-cyan-500/20 text-cyan-300 flex items-center justify-center mx-auto mb-1 border border-cyan-400/30">
-                        <Play size={14} className="ml-0.5 fill-cyan-400" />
-                      </div>
-                      <p className="text-[11px] font-semibold text-cyan-200">Video phụ (Meme / Gameplay)</p>
-                      <p className="text-[10px] text-cyan-300/80 mt-0.5 mb-2">
-                        {subVideoLoadError 
-                          ? '⚠ Định dạng video chưa hỗ trợ hoặc bị lỗi. Vui lòng bấm chọn file hoặc dùng video mẫu' 
-                          : subVideoFolder 
-                          ? (subVideoInfo.exists ? 'Đang tải video...' : '⚠ Đường dẫn không tồn tại trên máy') 
-                          : 'Chọn video phụ để ghép vào khung này'}
-                      </p>
-                      <div className="flex items-center gap-1.5" onClick={(e) => e.stopPropagation()}>
-                        <button
-                          type="button"
-                          onClick={handleUseSampleMedia}
-                          className="px-2.5 py-1 bg-gradient-to-r from-cyan-600 to-blue-600 hover:from-cyan-500 hover:to-blue-500 text-white rounded-lg text-[10px] font-semibold shadow flex items-center gap-1 cursor-pointer transition active:scale-95"
-                        >
-                          <Sparkles size={11} /> Dùng video mẫu
-                        </button>
-                        <button
-                          type="button"
-                          onClick={handleBrowseSubVideoFile}
-                          className="px-2 py-1 bg-[#152744] hover:bg-[#1e3860] text-cyan-200 rounded-lg text-[10px] font-medium border border-cyan-500/30 flex items-center gap-1 cursor-pointer transition active:scale-95"
-                        >
-                          <Film size={11} /> Chọn file
-                        </button>
-                        <button
-                          type="button"
-                          onClick={handleBrowseSubVideo}
-                          className="px-2 py-1 bg-[#152744] hover:bg-[#1e3860] text-cyan-200 rounded-lg text-[10px] font-medium border border-cyan-500/30 flex items-center gap-1 cursor-pointer transition active:scale-95"
-                        >
-                          <FolderOpen size={11} /> Thư mục
-                        </button>
-                      </div>
-                    </div>
-                  )}
-
-                  {/* Dimension badge */}
+                  <video
+                    key={subVideoFolder || 'default-pip'}
+                    src={subVideoFolder ? `/api/media/stream-local?folder=${encodeURIComponent(subVideoFolder)}&type=video` : '/api/media/stream-local?folder=storage%2Fsample_media%2Fvideos&type=video'}
+                    autoPlay
+                    loop
+                    muted
+                    playsInline
+                    className="w-full h-full object-cover pointer-events-none"
+                  />
                   <span className="absolute top-1.5 right-1.5 text-[9px] bg-black/75 text-cyan-300 px-1.5 py-0.5 rounded font-mono border border-cyan-500/30">
                     Video phụ ({subVideoPos.scale}%)
                   </span>
@@ -1444,11 +1472,16 @@ export const StudioView: React.FC<StudioViewProps> = ({
               {watermark.enabled && watermark.text && (
                 <div 
                   style={{ opacity: watermark.opacity }}
-                  className={`absolute z-20 font-bold text-white pointer-events-none drop-shadow-md text-[11px] font-mono ${
-                    watermark.position === 'top_left' ? 'top-3 left-3' :
-                    watermark.position === 'bottom_left' ? 'bottom-8 left-3' :
-                    watermark.position === 'bottom_right' ? 'bottom-8 right-3' :
-                    'top-3 right-3'
+                  className={`absolute z-30 font-bold pointer-events-none drop-shadow-md font-mono ${
+                    watermark.position === 'top_center'
+                      ? 'top-3.5 left-1/2 -translate-x-1/2 px-3.5 py-1 bg-black/65 rounded-full border border-yellow-400/40 text-yellow-300 font-black shadow-xl tracking-wide flex items-center gap-1.5 text-xs'
+                      : watermark.position === 'top_left'
+                      ? 'top-3 left-3 text-white text-[11px]'
+                      : watermark.position === 'bottom_left'
+                      ? 'bottom-8 left-3 text-white text-[11px]'
+                      : watermark.position === 'bottom_right'
+                      ? 'bottom-8 right-3 text-white text-[11px]'
+                      : 'top-3 right-3 text-white text-[11px]'
                   }`}
                 >
                   {watermark.text}
@@ -1458,17 +1491,17 @@ export const StudioView: React.FC<StudioViewProps> = ({
               {/* 4. Live Subtitle Preview */}
               {subtitleStyle.enabled && (
                 <div 
-                  className={`absolute inset-x-3 z-20 pointer-events-none flex justify-center text-center ${
+                  className={`absolute inset-x-3 z-30 pointer-events-none flex justify-center text-center ${
                     subtitleStyle.position === 'top' ? 'top-14' :
                     subtitleStyle.position === 'middle' ? 'top-1/2 -translate-y-1/2' :
-                    'bottom-4'
+                    'bottom-10'
                   }`}
                 >
                   <span 
-                    className="px-2 py-0.5 rounded font-black text-xs"
+                    className="px-3 py-1 font-black text-sm uppercase tracking-wider select-none"
                     style={{
-                      color: subtitleStyle.primaryColor.includes('00FFFF') || subtitleStyle.primaryColor.includes('FFFF00') ? '#FBBF24' : '#FFFFFF',
-                      textShadow: '0 2px 4px #000, -1px -1px 0 #000, 1px -1px 0 #000, -1px 1px 0 #000, 1px 1px 0 #000'
+                      color: '#FFE600',
+                      textShadow: '0 3px 6px rgba(0,0,0,0.95), -2px -2px 0 #000, 2px -2px 0 #000, -2px 2px 0 #000, 2px 2px 0 #000, 0 2px 0 #000, 0 -2px 0 #000, 2px 0 0 #000, -2px 0 0 #000'
                     }}
                   >
                     {isViewingPost 
@@ -1607,67 +1640,90 @@ export const StudioView: React.FC<StudioViewProps> = ({
               ) : (
                 <div className="space-y-3">
                   <div>
-                    <div className="flex justify-between text-[11px] text-slate-400 mb-1">
-                      <span>Tọa độ X</span>
-                      <span className="font-mono text-slate-200">{(subVideoPos?.x ?? 50).toFixed(1)} %</span>
-                    </div>
-                    <input
-                      type="range"
-                      min="10"
-                      max="90"
-                      step="0.5"
-                      value={subVideoPos?.x ?? 50}
-                      onChange={(e) => setSubVideoPos({ ...subVideoPos, x: parseFloat(e.target.value) })}
-                      className="w-full cursor-pointer"
-                    />
+                    <label className="block text-[11px] text-slate-400 mb-1">Chế độ hiển thị Video phụ</label>
+                    <select
+                      value={subVideoPos?.layoutMode || 'fullscreen'}
+                      onChange={(e: any) => setSubVideoPos({ ...subVideoPos, layoutMode: e.target.value })}
+                      className="w-full bg-[#152542] border border-[#213b63] rounded-xl px-3 py-1.5 text-xs text-slate-200 focus:outline-none cursor-pointer"
+                    >
+                      <option value="fullscreen">Toàn màn hình dọc (100% nền) - [Mặc định Shorts/TikTok]</option>
+                      <option value="pip">Khung nhỏ góc dưới (PIP Box)</option>
+                    </select>
                   </div>
 
-                  <div>
-                    <div className="flex justify-between text-[11px] text-slate-400 mb-1">
-                      <span>Tọa độ Y</span>
-                      <span className="font-mono text-slate-200">{(subVideoPos?.y ?? 65).toFixed(1)} %</span>
-                    </div>
-                    <input
-                      type="range"
-                      min="10"
-                      max="90"
-                      step="0.5"
-                      value={subVideoPos?.y ?? 65}
-                      onChange={(e) => setSubVideoPos({ ...subVideoPos, y: parseFloat(e.target.value) })}
-                      className="w-full cursor-pointer"
-                    />
-                  </div>
+                  {subVideoPos?.layoutMode === 'pip' ? (
+                    <>
+                      <div>
+                        <div className="flex justify-between text-[11px] text-slate-400 mb-1">
+                          <span>Tọa độ X</span>
+                          <span className="font-mono text-slate-200">{(subVideoPos?.x ?? 50).toFixed(1)} %</span>
+                        </div>
+                        <input
+                          type="range"
+                          min="10"
+                          max="90"
+                          step="0.5"
+                          value={subVideoPos?.x ?? 50}
+                          onChange={(e) => setSubVideoPos({ ...subVideoPos, x: parseFloat(e.target.value) })}
+                          className="w-full cursor-pointer"
+                        />
+                      </div>
 
-                  <div>
-                    <div className="flex justify-between text-[11px] text-slate-400 mb-1">
-                      <span>Cỡ (Phóng to)</span>
-                      <span className="font-mono text-slate-200">{(subVideoPos?.scale ?? 110).toFixed(1)} %</span>
-                    </div>
-                    <input
-                      type="range"
-                      min="50"
-                      max="160"
-                      step="1"
-                      value={subVideoPos?.scale ?? 110}
-                      onChange={(e) => setSubVideoPos({ ...subVideoPos, scale: parseFloat(e.target.value) })}
-                      className="w-full cursor-pointer"
-                    />
-                  </div>
+                      <div>
+                        <div className="flex justify-between text-[11px] text-slate-400 mb-1">
+                          <span>Tọa độ Y</span>
+                          <span className="font-mono text-slate-200">{(subVideoPos?.y ?? 65).toFixed(1)} %</span>
+                        </div>
+                        <input
+                          type="range"
+                          min="10"
+                          max="90"
+                          step="0.5"
+                          value={subVideoPos?.y ?? 65}
+                          onChange={(e) => setSubVideoPos({ ...subVideoPos, y: parseFloat(e.target.value) })}
+                          className="w-full cursor-pointer"
+                        />
+                      </div>
 
-                  <div>
-                    <div className="flex justify-between text-[11px] text-slate-400 mb-1">
-                      <span>Bo góc</span>
-                      <span className="font-mono text-slate-200">{subVideoPos?.borderRadius ?? 12} px</span>
+                      <div>
+                        <div className="flex justify-between text-[11px] text-slate-400 mb-1">
+                          <span>Cỡ (Phóng to)</span>
+                          <span className="font-mono text-slate-200">{(subVideoPos?.scale ?? 110).toFixed(1)} %</span>
+                        </div>
+                        <input
+                          type="range"
+                          min="50"
+                          max="160"
+                          step="1"
+                          value={subVideoPos?.scale ?? 110}
+                          onChange={(e) => setSubVideoPos({ ...subVideoPos, scale: parseFloat(e.target.value) })}
+                          className="w-full cursor-pointer"
+                        />
+                      </div>
+
+                      <div>
+                        <div className="flex justify-between text-[11px] text-slate-400 mb-1">
+                          <span>Bo góc</span>
+                          <span className="font-mono text-slate-200">{subVideoPos?.borderRadius ?? 12} px</span>
+                        </div>
+                        <input
+                          type="range"
+                          min="0"
+                          max="32"
+                          value={subVideoPos?.borderRadius ?? 12}
+                          onChange={(e) => setSubVideoPos({ ...subVideoPos, borderRadius: parseInt(e.target.value) })}
+                          className="w-full cursor-pointer"
+                        />
+                      </div>
+                    </>
+                  ) : (
+                    <div className="p-3 bg-cyan-950/40 border border-cyan-500/30 rounded-xl space-y-1.5 text-xs">
+                      <p className="font-semibold text-cyan-300">✓ Toàn màn hình dọc (100% nền)</p>
+                      <p className="text-[11px] text-slate-400 leading-relaxed">
+                        Video phụ (Gameplay Minecraft / B-roll) luôn chạy dọc chiếm 100% toàn màn hình phía sau. Thẻ bài viết và phụ đề nổi bật phía trước.
+                      </p>
                     </div>
-                    <input
-                      type="range"
-                      min="0"
-                      max="32"
-                      value={subVideoPos?.borderRadius ?? 12}
-                      onChange={(e) => setSubVideoPos({ ...subVideoPos, borderRadius: parseInt(e.target.value) })}
-                      className="w-full cursor-pointer"
-                    />
-                  </div>
+                  )}
                 </div>
               )}
             </div>

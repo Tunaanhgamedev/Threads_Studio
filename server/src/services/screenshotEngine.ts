@@ -73,16 +73,11 @@ export class ScreenshotEngine {
         <style>
           * { box-sizing: border-box; margin: 0; padding: 0; }
           body {
-            width: 100vw;
-            height: 100vh;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            background: #070d19;
-            background-size: 32px 32px;
-            background-image: 
-              linear-gradient(to right, rgba(59, 130, 246, 0.12) 1px, transparent 1px),
-              linear-gradient(to bottom, rgba(59, 130, 246, 0.12) 1px, transparent 1px);
+            width: auto;
+            height: auto;
+            display: inline-block;
+            padding: 30px;
+            background: transparent !important;
             font-family: 'Plus Jakarta Sans', -apple-system, sans-serif;
           }
           .card {
@@ -102,7 +97,7 @@ export class ScreenshotEngine {
           .author-info {
             display: flex;
             align-items: center;
-            gap: 16px;
+            gap: 14px;
           }
           .avatar {
             width: 64px;
@@ -175,12 +170,26 @@ export class ScreenshotEngine {
             color: #2563eb;
             letter-spacing: 1px;
           }
+          .media-gallery {
+            display: flex;
+            flex-direction: column;
+            gap: 16px;
+            margin-bottom: 24px;
+          }
+          .post-media-img {
+            width: 100%;
+            max-height: 480px;
+            object-fit: cover;
+            border-radius: 16px;
+            border: 1px solid ${borderColor};
+          }
         </style>
       </head>
       <body>
         <div class="card" id="card">
           <div class="header">
             <div class="author-info">
+              <span style="font-size: 28px; font-weight: 700; color: ${subtextColor}; margin-right: 4px; line-height: 1; user-select: none;">‹</span>
               <img class="avatar" src="${post.avatar}" alt="avatar" />
               <div class="names">
                 <div class="display-name">
@@ -190,9 +199,19 @@ export class ScreenshotEngine {
                 <div class="username">@${username}</div>
               </div>
             </div>
+            <div style="display: flex; align-items: center; gap: 16px; color: ${subtextColor};">
+              <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z"/></svg>
+              <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><polygon points="23 7 16 12 23 17 23 7"/><rect x="1" y="5" width="15" height="14" rx="2" ry="2"/></svg>
+            </div>
+          </div>
             <div class="time">${post.timestamp}</div>
           </div>
           <div class="content">${post.content}</div>
+          ${post.mediaUrls && post.mediaUrls.length > 0 ? `
+            <div class="media-gallery">
+              ${post.mediaUrls.map((u: string) => `<img class="post-media-img" src="${u}" alt="Attachment" />`).join('')}
+            </div>
+          ` : ''}
           <div class="footer">
             <div class="actions">
               <div class="action-item" style="color: #ef4444;">
@@ -236,16 +255,11 @@ export class ScreenshotEngine {
         <style>
           * { box-sizing: border-box; margin: 0; padding: 0; }
           body {
-            width: 100vw;
-            height: 100vh;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            background: #070d19;
-            background-size: 32px 32px;
-            background-image: 
-              linear-gradient(to right, rgba(59, 130, 246, 0.12) 1px, transparent 1px),
-              linear-gradient(to bottom, rgba(59, 130, 246, 0.12) 1px, transparent 1px);
+            width: auto;
+            height: auto;
+            display: inline-block;
+            padding: 30px;
+            background: transparent !important;
             font-family: 'Plus Jakarta Sans', -apple-system, sans-serif;
           }
           .card {
@@ -265,7 +279,7 @@ export class ScreenshotEngine {
           .author-info {
             display: flex;
             align-items: center;
-            gap: 16px;
+            gap: 14px;
           }
           .avatar {
             width: 58px;
@@ -332,12 +346,18 @@ export class ScreenshotEngine {
         <div class="card" id="card">
           <div class="header">
             <div class="author-info">
+              <span style="font-size: 26px; font-weight: 700; color: ${subtextColor}; margin-right: 4px; line-height: 1; user-select: none;">‹</span>
               <img class="avatar" src="${comment.avatar}" alt="avatar" />
               <div class="names">
                 <div class="display-name">${comment.displayName}</div>
                 <div class="username">@${comment.username}</div>
               </div>
             </div>
+            <div style="display: flex; align-items: center; gap: 14px; color: ${subtextColor};">
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z"/></svg>
+              <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><polygon points="23 7 16 12 23 17 23 7"/><rect x="1" y="5" width="15" height="14" rx="2" ry="2"/></svg>
+            </div>
+          </div>
             <div class="time">${comment.timestamp}</div>
           </div>
           <div class="content">${comment.content}</div>
@@ -372,8 +392,13 @@ export class ScreenshotEngine {
     try {
       await page.setContent(html, { waitUntil: 'load' });
       // Small pause for font rendering
-      await page.waitForTimeout(100);
-      await page.screenshot({ path: outputPath, type: 'png' });
+      await page.waitForTimeout(120);
+      const cardEl = await page.$('#card');
+      if (cardEl) {
+        await cardEl.screenshot({ path: outputPath, omitBackground: true });
+      } else {
+        await page.screenshot({ path: outputPath, omitBackground: true });
+      }
     } finally {
       await page.close();
     }

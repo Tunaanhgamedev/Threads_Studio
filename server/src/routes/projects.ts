@@ -395,7 +395,7 @@ router.post('/manual', async (req, res) => {
 // PUT /api/projects/:id - update project details or config
 router.put('/:id', (req, res) => {
   try {
-    const { title, config, comments, scenes } = req.body;
+    const { title, config, comments, scenes, post } = req.body;
     const projectId = req.params.id;
     const now = new Date().toISOString();
 
@@ -415,6 +415,35 @@ router.put('/:id', (req, res) => {
       params.push(projectId);
 
       db.prepare(`UPDATE projects SET ${updates.join(', ')} WHERE id = ?`).run(...params);
+    }
+
+    if (post) {
+      const pUpdates = [];
+      const pParams = [];
+      if (post.content !== undefined) {
+        pUpdates.push('content = ?');
+        pParams.push(post.content);
+      }
+      if (post.displayName !== undefined) {
+        pUpdates.push('display_name = ?');
+        pParams.push(post.displayName);
+      }
+      if (post.username !== undefined) {
+        pUpdates.push('username = ?');
+        pParams.push(post.username);
+      }
+      if (post.avatar !== undefined) {
+        pUpdates.push('avatar = ?');
+        pParams.push(post.avatar);
+      }
+      if (Array.isArray(post.mediaUrls)) {
+        pUpdates.push('media_urls = ?');
+        pParams.push(JSON.stringify(post.mediaUrls));
+      }
+      if (pUpdates.length > 0) {
+        pParams.push(projectId);
+        db.prepare(`UPDATE posts SET ${pUpdates.join(', ')} WHERE project_id = ?`).run(...pParams);
+      }
     }
 
     if (Array.isArray(comments)) {

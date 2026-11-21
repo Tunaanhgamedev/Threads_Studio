@@ -63,6 +63,14 @@ app.get('/api/health', (req, res) => {
   });
 });
 
+// 404 handler for unknown API routes so it never falls through to HTML index.html
+app.all('/api/*', (req, res) => {
+  res.status(404).json({
+    success: false,
+    error: `API route not found: ${req.method} ${req.path}`
+  });
+});
+
 // Serve frontend production build statically if available
 const clientDistDir = path.resolve(process.cwd(), 'client', 'dist');
 if (fs.existsSync(clientDistDir)) {

@@ -1,5 +1,6 @@
 import { 
   Project, 
+  ThreadPost,
   VoiceItem, 
   SystemSettings, 
   RenderJob, 
@@ -206,7 +207,7 @@ export const api = {
     return data.scenes || [];
   },
 
-  async updateProject(id: string, updates: Partial<Project>): Promise<Project> {
+  async updateProject(id: string, updates: Partial<Omit<Project, 'post'>> & { post?: Partial<ThreadPost> }): Promise<Project> {
     const data = await fetchJson<{ success: boolean; project: Project; error?: string }>(`${API_BASE}/projects/${id}`, {
       method: 'PUT',
       headers: { 'Content-Type': 'application/json' },

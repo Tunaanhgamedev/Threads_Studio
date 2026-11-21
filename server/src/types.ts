@@ -54,6 +54,7 @@ export interface VideoPositionConfig {
 
 export interface SubVideoConfig {
   enabled: boolean;
+  layoutMode?: 'fullscreen' | 'pip' | 'split';
   x: number;
   y: number;
   scale: number;
@@ -83,7 +84,7 @@ export interface TTSConfig {
 export interface WatermarkConfig {
   enabled: boolean;
   text: string;
-  position: 'top_left' | 'top_right' | 'bottom_left' | 'bottom_right';
+  position: 'top_left' | 'top_right' | 'top_center' | 'bottom_left' | 'bottom_right';
   opacity: number; // 0.1 - 1.0
   fontSize?: number;
 }

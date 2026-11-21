@@ -305,8 +305,19 @@ export class VideoService {
       marginV = isPortrait ? 180 : 80;
     }
 
-    const fontSize = subConfig?.fontSize || (isPortrait ? 40 : 44);
-    const primaryColor = subConfig?.primaryColor || '&H00FFFFFF';
+    const fontSize = subConfig?.fontSize || (isPortrait ? 44 : 46);
+    // Default to viral punchy yellow #FFE600 (&H0000E6FF in ASS BGR format)
+    let primaryColor = subConfig?.primaryColor || '&H0000E6FF';
+    if (primaryColor.startsWith('#')) {
+      // Convert HEX #RRGGBB to ASS &H00BBGGRR
+      const hex = primaryColor.replace('#', '');
+      if (hex.length === 6) {
+        const r = hex.substring(0, 2);
+        const g = hex.substring(2, 4);
+        const b = hex.substring(4, 6);
+        primaryColor = `&H00${b}${g}${r}`;
+      }
+    }
     const outlineColor = subConfig?.outlineColor || '&H00000000';
 
     const formatTime = (seconds: number): string => {
@@ -328,7 +339,7 @@ export class VideoService {
       '',
       '[V4+ Styles]',
       'Format: Name, Fontname, Fontsize, PrimaryColour, SecondaryColour, OutlineColour, BackColour, Bold, Italic, Underline, StrikeOut, ScaleX, ScaleY, Spacing, Angle, BorderStyle, Outline, Shadow, Alignment, MarginL, MarginR, MarginV, Encoding',
-      `Style: Default,Arial,${fontSize},${primaryColor},&H0000FFFF,${outlineColor},&H80000000,1,0,0,0,100,100,0,0,1,3.5,1.5,${alignment},40,40,${marginV},1`,
+      `Style: Default,Arial,${fontSize},${primaryColor},&H0000FFFF,${outlineColor},&H90000000,1,0,0,0,100,100,0,0,1,4.5,2.0,${alignment},40,40,${marginV},1`,
       '',
       '[Events]',
       'Format: Layer, Start, End, Style, Name, MarginL, MarginR, MarginV, Effect, Text'
@@ -380,9 +391,10 @@ export class VideoService {
     const commentScreenshots = screenshots.filter(s => s.type === 'comment');
 
     const cardScale = ((project.config.cardPosition?.scale ?? 105) / 100);
-    const cardTargetWidth = Math.round((width * 0.85) * cardScale);
-    const cardX = Math.round((width - cardTargetWidth) * ((project.config.cardPosition?.x ?? 50) / 100));
-    const cardY = Math.round((height * 0.15) * ((project.config.cardPosition?.y ?? 28) / 28));
+    const cardTargetWidth = Math.round((width * 0.88) * cardScale);
+    const cardPosYPercent = ((project.config.cardPosition?.y ?? 38) / 100).toFixed(2);
+    const cardXExpr = `(W-w)/2`;
+    const cardYExpr = `H*${cardPosYPercent}-(h/2)`;
 
     // PIP Sub video settings
     const subVideoEnabled = project.config.subVideoPosition?.enabled !== false;
@@ -399,24 +411,54 @@ export class VideoService {
     const VIDEO_EXTS = new Set(['.mp4', '.mov', '.mkv', '.webm', '.avi']);
     const AUDIO_EXTS = new Set(['.mp3', '.wav', '.m4a', '.aac', '.ogg', '.flac']);
 
-    // 1. Detect background video from disk if configured
-    let bgVideoPath: string | null = null;
-    if (project.config.backgroundVideoFolder) {
-      const folderCandidate = path.normalize(project.config.backgroundVideoFolder);
-      if (fs.existsSync(folderCandidate)) {
-        if (fs.statSync(folderCandidate).isDirectory()) {
-          const files = fs.readdirSync(folderCandidate).filter(f => VIDEO_EXTS.has(path.extname(f).toLowerCase()));
-          if (files.length > 0) {
-            bgVideoPath = path.join(folderCandidate, files[Math.floor(Math.random() * files.length)]);
+    // Helper to find video file in directory or subdirectories
+    const findVideoInFolder = (folderOrFile: string): string | null => {
+      try {
+        const candidate = path.normalize(folderOrFile);
+        if (!fs.existsSync(candidate)) return null;
+        if (fs.statSync(candidate).isFile()) return candidate;
+        const entries = fs.readdirSync(candidate, { withFileTypes: true });
+        const directVideos = entries
+          .filter(e => e.isFile() && VIDEO_EXTS.has(path.extname(e.name).toLowerCase()))
+          .map(e => path.join(candidate, e.name));
+        if (directVideos.length > 0) {
+          return directVideos[Math.floor(Math.random() * directVideos.length)];
+        }
+        for (const sub of entries.filter(e => e.isDirectory())) {
+          const subPath = path.join(candidate, sub.name);
+          const subEntries = fs.readdirSync(subPath).filter(f => VIDEO_EXTS.has(path.extname(f).toLowerCase()));
+          if (subEntries.length > 0) {
+            return path.join(subPath, subEntries[Math.floor(Math.random() * subEntries.length)]);
           }
-        } else if (fs.statSync(folderCandidate).isFile()) {
-          bgVideoPath = folderCandidate;
+        }
+      } catch (e) {
+        console.error('Error finding video in folder:', e);
+      }
+      return null;
+    };
+
+    // 1. Detect video source (Gameplay / Satisfying / B-roll) from disk if enabled
+    let bgVideoPath: string | null = null;
+    const isVideoEnabled = project.config.subVideoPosition?.enabled !== false;
+
+    if (isVideoEnabled) {
+      if (project.config.subVideoPosition?.folder) {
+        bgVideoPath = findVideoInFolder(project.config.subVideoPosition.folder);
+      }
+      if (!bgVideoPath && project.config.backgroundVideoFolder) {
+        bgVideoPath = findVideoInFolder(project.config.backgroundVideoFolder);
+      }
+      // If still not found, check default sample gameplay media
+      if (!bgVideoPath) {
+        const sampleGameplay = path.resolve(process.cwd(), 'storage', 'sample_media', 'videos', 'background_gameplay.mp4');
+        if (fs.existsSync(sampleGameplay)) {
+          bgVideoPath = sampleGameplay;
         }
       }
     }
 
     if (bgVideoPath) {
-      this.appendLog(jobId, `Sử dụng video nền: ${path.basename(bgVideoPath)}`);
+      this.appendLog(jobId, `Sử dụng video nền dọc toàn màn hình: ${path.basename(bgVideoPath)}`);
       inputs.push('-stream_loop', '-1', '-i', bgVideoPath);
       const bgInputIdx = nextInputIndex++;
       let bgFilter = `[${bgInputIdx}:v]scale=${width}:${height}:force_original_aspect_ratio=increase,crop=${width}:${height},fps=30`;
@@ -426,10 +468,11 @@ export class VideoService {
       if (project.config.effects?.vignette) {
         bgFilter += `,vignette=PI/4`;
       }
-      bgFilter += `,colorlevels=rimax=0.82:gimax=0.82:bimax=0.82[bg]`;
+      // Subtle dimming overlay so white card and subtitles stand out sharply
+      bgFilter += `,colorlevels=rimax=0.85:gimax=0.85:bimax=0.85[bg]`;
       filterParts.push(bgFilter);
     } else {
-      // Fallback: dark clean canvas with subtle grid
+      // Fallback: dark clean luxury canvas with subtle grid
       inputs.push('-f', 'lavfi', '-i', `color=c=0x070d19:s=${width}x${height}:d=${totalDuration.toFixed(2)}:r=30`);
       const bgInputIdx = nextInputIndex++;
       let bgFilter = `[${bgInputIdx}:v]drawgrid=width=120:height=120:thickness=2:color=white@0.08`;
@@ -444,36 +487,24 @@ export class VideoService {
     }
     let currentV = '[bg]';
 
-    // 2. Detect secondary (sub/PIP) video from disk if enabled
-    let subVideoPath: string | null = null;
-    if (subVideoEnabled && project.config.subVideoPosition?.folder) {
-      const subFolderCandidate = path.normalize(project.config.subVideoPosition.folder);
-      if (fs.existsSync(subFolderCandidate)) {
-        if (fs.statSync(subFolderCandidate).isDirectory()) {
-          const files = fs.readdirSync(subFolderCandidate).filter(f => VIDEO_EXTS.has(path.extname(f).toLowerCase()));
-          if (files.length > 0) {
-            subVideoPath = path.join(subFolderCandidate, files[Math.floor(Math.random() * files.length)]);
-          }
-        } else if (fs.statSync(subFolderCandidate).isFile()) {
-          subVideoPath = subFolderCandidate;
-        }
+    // 2. Optional secondary PIP box overlay ONLY if layoutMode is explicitly 'pip'
+    const layoutMode = project.config.subVideoPosition?.layoutMode || 'fullscreen';
+    if (layoutMode === 'pip' && isVideoEnabled) {
+      let subVideoPath: string | null = null;
+      if (project.config.subVideoPosition?.folder) {
+        subVideoPath = findVideoInFolder(project.config.subVideoPosition.folder);
       }
-    }
+      if (!subVideoPath && project.config.backgroundVideoFolder) {
+        subVideoPath = findVideoInFolder(project.config.backgroundVideoFolder);
+      }
 
-    if (subVideoEnabled) {
       if (subVideoPath) {
-        this.appendLog(jobId, `Sử dụng video phụ: ${path.basename(subVideoPath)}`);
+        this.appendLog(jobId, `Sử dụng khung PIP video phụ: ${path.basename(subVideoPath)}`);
         inputs.push('-stream_loop', '-1', '-i', subVideoPath);
         const subInputIdx = nextInputIndex++;
         filterParts.push(
-          `[${subInputIdx}:v]scale=${subVideoWidth}:${subVideoHeight}:force_original_aspect_ratio=increase,crop=${subVideoWidth}:${subVideoHeight},fps=30,drawbox=x=0:y=0:w=in_w:h=in_h:color=white@0.25:t=4[subv]`
+          `[${subInputIdx}:v]scale=${subVideoWidth}:${subVideoHeight}:force_original_aspect_ratio=increase,crop=${subVideoWidth}:${subVideoHeight},fps=30[subv]`
         );
-        filterParts.push(`${currentV}[subv]overlay=${subVideoX}:${subVideoY}[v_pip]`);
-        currentV = '[v_pip]';
-      } else {
-        inputs.push('-f', 'lavfi', '-i', `testsrc2=s=${subVideoWidth}x${subVideoHeight}:r=30:d=${totalDuration.toFixed(2)}`);
-        const subInputIdx = nextInputIndex++;
-        filterParts.push(`[${subInputIdx}:v]drawbox=x=0:y=0:w=in_w:h=in_h:color=white@0.25:t=4[subv]`);
         filterParts.push(`${currentV}[subv]overlay=${subVideoX}:${subVideoY}[v_pip]`);
         currentV = '[v_pip]';
       }
@@ -525,16 +556,16 @@ export class VideoService {
         if (transType === 'slide_left') {
           // Slide in from right
           filterParts.push(`[${cardInputIdx}:v]scale=${cardTargetWidth}:-1${cardTag}`);
-          const xExpr = `if(lt(t,${startT.toFixed(2)}+${transDur}),W-(t-${startT.toFixed(2)})/${transDur}*(W-${cardX}),${cardX})`;
+          const xExpr = `if(lt(t,${startT.toFixed(2)}+${transDur}),W-(t-${startT.toFixed(2)})/${transDur}*(W-(W-w)/2),(W-w)/2)`;
           filterParts.push(
-            `${currentV}${cardTag}overlay=x='${xExpr}':y=${cardY}:enable='between(t,${startT.toFixed(2)},${endT.toFixed(2)})'${nextV}`
+            `${currentV}${cardTag}overlay=x='${xExpr}':y='${cardYExpr}':enable='between(t,${startT.toFixed(2)},${endT.toFixed(2)})'${nextV}`
           );
         } else if (transType === 'slide_right') {
           // Slide in from left
           filterParts.push(`[${cardInputIdx}:v]scale=${cardTargetWidth}:-1${cardTag}`);
-          const xExpr = `if(lt(t,${startT.toFixed(2)}+${transDur}),-w+(t-${startT.toFixed(2)})/${transDur}*(${cardX}+w),${cardX})`;
+          const xExpr = `if(lt(t,${startT.toFixed(2)}+${transDur}),-w+(t-${startT.toFixed(2)})/${transDur}*((W-w)/2+w),(W-w)/2)`;
           filterParts.push(
-            `${currentV}${cardTag}overlay=x='${xExpr}':y=${cardY}:enable='between(t,${startT.toFixed(2)},${endT.toFixed(2)})'${nextV}`
+            `${currentV}${cardTag}overlay=x='${xExpr}':y='${cardYExpr}':enable='between(t,${startT.toFixed(2)},${endT.toFixed(2)})'${nextV}`
           );
         } else if (transType === 'fade') {
           // Fade in with alpha
@@ -542,13 +573,13 @@ export class VideoService {
             `[${cardInputIdx}:v]scale=${cardTargetWidth}:-1,fade=t=in:st=${startT.toFixed(2)}:d=${transDur}:alpha=1${cardTag}`
           );
           filterParts.push(
-            `${currentV}${cardTag}overlay=${cardX}:${cardY}:enable='between(t,${startT.toFixed(2)},${endT.toFixed(2)})'${nextV}`
+            `${currentV}${cardTag}overlay=x='${cardXExpr}':y='${cardYExpr}':enable='between(t,${startT.toFixed(2)},${endT.toFixed(2)})'${nextV}`
           );
         } else {
           // Cut / direct overlay
           filterParts.push(`[${cardInputIdx}:v]scale=${cardTargetWidth}:-1${cardTag}`);
           filterParts.push(
-            `${currentV}${cardTag}overlay=${cardX}:${cardY}:enable='between(t,${startT.toFixed(2)},${endT.toFixed(2)})'${nextV}`
+            `${currentV}${cardTag}overlay=x='${cardXExpr}':y='${cardYExpr}':enable='between(t,${startT.toFixed(2)},${endT.toFixed(2)})'${nextV}`
           );
         }
 
@@ -561,24 +592,27 @@ export class VideoService {
     if (project.config.watermark?.enabled && project.config.watermark.text) {
       const wm = project.config.watermark;
       const text = wm.text.replace(/\\/g, '\\\\').replace(/'/g, "\\'").replace(/:/g, '\\:');
-      const fontSize = wm.fontSize || (isPortrait ? 26 : 30);
-      const opacity = Math.min(1.0, Math.max(0.1, wm.opacity || 0.7));
+      const fontSize = wm.fontSize || (isPortrait ? 28 : 32);
+      const opacity = Math.min(1.0, Math.max(0.1, wm.opacity || 0.85));
 
       let xPos = 'w-tw-40';
-      let yPos = '40';
+      let yPos = '50';
       if (wm.position === 'top_left') {
         xPos = '40';
-        yPos = '40';
+        yPos = '50';
+      } else if (wm.position === 'top_center') {
+        xPos = '(w-tw)/2';
+        yPos = '50';
       } else if (wm.position === 'bottom_right') {
         xPos = 'w-tw-40';
-        yPos = 'h-th-40';
+        yPos = 'h-th-50';
       } else if (wm.position === 'bottom_left') {
         xPos = '40';
-        yPos = 'h-th-40';
+        yPos = 'h-th-50';
       }
 
       const wmV = `[v_wm]`;
-      filterParts.push(`${currentV}drawtext=text='${text}':fontsize=${fontSize}:fontcolor=white@${opacity.toFixed(2)}:x=${xPos}:y=${yPos}${wmV}`);
+      filterParts.push(`${currentV}drawtext=text='${text}':fontsize=${fontSize}:fontcolor=yellow@${opacity.toFixed(2)}:box=1:boxcolor=black@0.6:boxborderw=10:x=${xPos}:y=${yPos}${wmV}`);
       currentV = wmV;
     }
 
