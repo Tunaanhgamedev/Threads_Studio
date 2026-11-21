@@ -2,6 +2,7 @@ import { Router } from 'express';
 import { execFile } from 'child_process';
 import fs from 'fs';
 import path from 'path';
+import { getStorageDir } from '../storagePath.js';
 
 const router = Router();
 
@@ -53,9 +54,10 @@ if ('${cleanStartDir}') {
 }
 $topForm = New-Object System.Windows.Forms.Form
 $topForm.TopMost = $true
-$topForm.WindowState = [System.Windows.Forms.FormWindowState]::Minimized
+$topForm.StartPosition = [System.Windows.Forms.FormStartPosition]::Manual
+$topForm.Location = New-Object System.Drawing.Point(-3000, -3000)
+$topForm.Size = New-Object System.Drawing.Size(1, 1)
 $topForm.Show()
-$topForm.WindowState = [System.Windows.Forms.FormWindowState]::Normal
 $topForm.BringToFront()
 if ($dialog.ShowDialog($topForm) -eq [System.Windows.Forms.DialogResult]::OK) {
     Write-Output $dialog.SelectedPath
@@ -98,9 +100,10 @@ if ('${cleanStartDir}') {
 }
 $topForm = New-Object System.Windows.Forms.Form
 $topForm.TopMost = $true
-$topForm.WindowState = [System.Windows.Forms.FormWindowState]::Minimized
+$topForm.StartPosition = [System.Windows.Forms.FormStartPosition]::Manual
+$topForm.Location = New-Object System.Drawing.Point(-3000, -3000)
+$topForm.Size = New-Object System.Drawing.Size(1, 1)
 $topForm.Show()
-$topForm.WindowState = [System.Windows.Forms.FormWindowState]::Normal
 $topForm.BringToFront()
 if ($dialog.ShowDialog($topForm) -eq [System.Windows.Forms.DialogResult]::OK) {
     Write-Output $dialog.FileName
@@ -112,6 +115,26 @@ $dialog.Dispose()
   const selected = await runPowerShellScript(psScript);
   console.log('[browse-file] Selected path:', selected);
   res.json({ success: true, path: selected || null });
+});
+
+// GET /api/media/sample-media - Provide built-in sample videos and audio tracks
+router.get('/sample-media', (req, res) => {
+  try {
+    const storageDir = getStorageDir();
+    const sampleDir = path.join(storageDir, 'sample_media');
+    const subVideo = path.join(sampleDir, 'videos', 'satisfying_loop.mp4');
+    const bgVideo = path.join(sampleDir, 'videos', 'background_gameplay.mp4');
+    const bgMusic = path.join(sampleDir, 'music', 'lofi_ambient.mp3');
+
+    res.json({
+      success: true,
+      subVideo: fs.existsSync(subVideo) ? subVideo : null,
+      backgroundVideo: fs.existsSync(bgVideo) ? bgVideo : null,
+      backgroundMusic: fs.existsSync(bgMusic) ? bgMusic : null
+    });
+  } catch (err: any) {
+    res.status(500).json({ success: false, error: err.message });
+  }
 });
 
 // GET /api/media/scan-folder - Scan directory OR single file for available video and audio files

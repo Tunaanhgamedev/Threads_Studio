@@ -12,7 +12,9 @@ import templatesRouter from './routes/templates.js';
 import mediaRouter from './routes/media.js';
 import automationRouter from './routes/automation.js';
 import threadsConnectorRouter from './routes/threadsConnector.js';
+import discoveryRouter from './routes/discovery.js';
 import { ThreadsApiService } from './services/threadsApiService.js';
+import { DiscoveryService } from './services/discoveryService.js';
 import { getStorageDir } from './storagePath.js';
 
 export const app = express();
@@ -49,6 +51,7 @@ app.use('/api/templates', templatesRouter);
 app.use('/api/media', mediaRouter);
 app.use('/api/automation', automationRouter);
 app.use('/api/threads-connector', threadsConnectorRouter);
+app.use('/api/discovery', discoveryRouter);
 
 // Health check
 app.get('/api/health', (req, res) => {
@@ -60,8 +63,20 @@ app.get('/api/health', (req, res) => {
   });
 });
 
+// Serve frontend production build statically if available
+const clientDistDir = path.resolve(process.cwd(), 'client', 'dist');
+if (fs.existsSync(clientDistDir)) {
+  app.use(express.static(clientDistDir));
+  app.get('*', (req, res, next) => {
+    if (req.path.startsWith('/api')) return next();
+    res.sendFile(path.join(clientDistDir, 'index.html'));
+  });
+}
+
 app.listen(PORT, '127.0.0.1', () => {
   console.log(`[Threads Content Studio Server] Running on http://127.0.0.1:${PORT}`);
   // Start Phase 8 background sync scheduler
   ThreadsApiService.initScheduledSync();
+  // Start Phase 9 background discovery cron
+  DiscoveryService.initDiscoveryCron();
 });

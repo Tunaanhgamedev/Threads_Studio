@@ -262,6 +262,25 @@ export const StudioView: React.FC<StudioViewProps> = ({
     }
   };
 
+  const handleUseSampleMedia = async () => {
+    try {
+      const samples = await api.getSampleMedia();
+      if (samples.subVideo) {
+        setSubVideoFolder(samples.subVideo);
+        setSubVideoEnabled(true);
+      }
+      if (samples.backgroundVideo && !bgVideoFolder) {
+        setBgVideoFolder(samples.backgroundVideo);
+      }
+      if (samples.backgroundMusic && !bgMusicFolder) {
+        setBgMusicFolder(samples.backgroundMusic);
+      }
+      setLogs(prev => [...prev, `[${new Date().toLocaleTimeString()}] Đã nạp Video phụ & Video nền mẫu có sẵn`]);
+    } catch (err: any) {
+      console.warn('Failed to load sample media:', err);
+    }
+  };
+
   // Sync state when project changes
   useEffect(() => {
     setThreadsUrl(project.threadsUrl);
@@ -702,9 +721,10 @@ export const StudioView: React.FC<StudioViewProps> = ({
                     <option value="VieNeu - Ngọc Huyền (Nữ miền Bắc)">VieNeu - Ngọc Huyền (Nữ miền Bắc)</option>
                     <option value="VieNeu - Thiện Minh (Nam miền Bắc)">VieNeu - Thiện Minh (Nam miền Bắc)</option>
                     <option value="VieNeu - Hải Đăng (Nam miền Nam)">VieNeu - Hải Đăng (Nam miền Nam)</option>
-                    <option value="TikTok Việt 1">TikTok Việt 1 (Nữ viral)</option>
-                    <option value="TikTok Việt 2">TikTok Việt 2 (Nam vui vẻ)</option>
+                    <option value="TikTok Việt 1 (Nữ viral)">TikTok Việt 1 (Nữ viral)</option>
+                    <option value="TikTok Việt 2 (Nam vui vẻ)">TikTok Việt 2 (Nam vui vẻ)</option>
                     <option value="Adam bựa - VieNeu">Adam bựa - VieNeu</option>
+                    <option value="VieNeu - Mai Linh (Nữ miền Trung)">VieNeu - Mai Linh (Nữ miền Trung)</option>
                   </select>
                 </div>
 
@@ -757,12 +777,13 @@ export const StudioView: React.FC<StudioViewProps> = ({
 
                 <div className="grid grid-cols-2 gap-2 text-xs">
                   {[
-                    'TikTok Việt 1',
-                    'TikTok Việt 2',
                     'VieNeu - Ngọc Huyền (Nữ miền Bắc)',
                     'VieNeu - Thiện Minh (Nam miền Bắc)',
                     'VieNeu - Hải Đăng (Nam miền Nam)',
-                    'Adam bựa - VieNeu'
+                    'TikTok Việt 1 (Nữ viral)',
+                    'TikTok Việt 2 (Nam vui vẻ)',
+                    'Adam bựa - VieNeu',
+                    'VieNeu - Mai Linh (Nữ miền Trung)'
                   ].map(vName => {
                     const isChecked = selectedVoices.includes(vName);
                     return (
@@ -787,7 +808,7 @@ export const StudioView: React.FC<StudioViewProps> = ({
                   })}
                 </div>
                 <p className="text-[11px] text-slate-400 mt-2 font-mono">
-                  {selectedVoices.length} giọng · VieNeu cục bộ, không cần Session ID
+                  {selectedVoices.length} giọng · Microsoft Edge Neural & Piper TTS
                 </p>
               </div>
             </div>
@@ -904,6 +925,15 @@ export const StudioView: React.FC<StudioViewProps> = ({
                   <FolderOpen size={13} className="text-blue-400" />
                   <span>Chọn thư mục</span>
                 </button>
+                <button
+                  type="button"
+                  onClick={handleUseSampleMedia}
+                  className="bg-blue-600/20 hover:bg-blue-600/30 text-blue-300 px-2.5 py-1.5 rounded-xl text-xs font-semibold border border-blue-500/40 transition shrink-0 flex items-center gap-1 cursor-pointer active:scale-95"
+                  title="Dùng video nền mẫu có sẵn"
+                >
+                  <Sparkles size={12} className="text-blue-400" />
+                  <span>Dùng mẫu</span>
+                </button>
               </div>
             </div>
 
@@ -951,6 +981,15 @@ export const StudioView: React.FC<StudioViewProps> = ({
                     >
                       <FolderOpen size={13} className="text-cyan-400" />
                       <span>Chọn thư mục</span>
+                    </button>
+                    <button
+                      type="button"
+                      onClick={handleUseSampleMedia}
+                      className="bg-cyan-950/60 hover:bg-cyan-900/80 text-cyan-300 px-2.5 py-1.5 rounded-xl text-xs font-semibold border border-cyan-500/40 transition shrink-0 flex items-center gap-1 cursor-pointer active:scale-95"
+                      title="Sử dụng video phụ mẫu (Satisfying / Gameplay có sẵn)"
+                    >
+                      <Sparkles size={12} className="text-cyan-400" />
+                      <span>Dùng mẫu</span>
                     </button>
                   </div>
                   <p className="text-[11px] text-slate-400">Tắt tiếng · Ngẫu nhiên · Tự lặp đủ thời lượng theo video chính</p>
@@ -1361,8 +1400,15 @@ export const StudioView: React.FC<StudioViewProps> = ({
                       <div className="flex items-center gap-1.5" onClick={(e) => e.stopPropagation()}>
                         <button
                           type="button"
+                          onClick={handleUseSampleMedia}
+                          className="px-2.5 py-1 bg-gradient-to-r from-cyan-600 to-blue-600 hover:from-cyan-500 hover:to-blue-500 text-white rounded-lg text-[10px] font-semibold shadow flex items-center gap-1 cursor-pointer transition active:scale-95"
+                        >
+                          <Sparkles size={11} /> Dùng video mẫu
+                        </button>
+                        <button
+                          type="button"
                           onClick={handleBrowseSubVideoFile}
-                          className="px-2 py-1 bg-cyan-600 hover:bg-cyan-500 text-white rounded-lg text-[10px] font-medium shadow flex items-center gap-1 cursor-pointer transition active:scale-95"
+                          className="px-2 py-1 bg-[#152744] hover:bg-[#1e3860] text-cyan-200 rounded-lg text-[10px] font-medium border border-cyan-500/30 flex items-center gap-1 cursor-pointer transition active:scale-95"
                         >
                           <Film size={11} /> Chọn file
                         </button>

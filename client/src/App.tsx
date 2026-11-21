@@ -4,6 +4,7 @@ import { Sidebar, ActiveTab } from './components/Sidebar';
 import { StudioView } from './views/StudioView';
 import { AutomationView } from './views/AutomationView';
 import { ThreadsConnectorView } from './views/ThreadsConnectorView';
+import { DiscoveryView } from './views/DiscoveryView';
 import { DashboardView } from './views/DashboardView';
 import { SourcesView } from './views/SourcesView';
 import { CommentsView } from './views/CommentsView';
@@ -190,6 +191,14 @@ export const App: React.FC = () => {
 
         {activeTab === 'connector' && (
           <ThreadsConnectorView
+            onSelectProject={handleSelectProject}
+            onOpenStudio={() => setActiveTab('studio')}
+            onOpenAutomation={() => setActiveTab('automation')}
+          />
+        )}
+
+        {activeTab === 'discovery' && (
+          <DiscoveryView
             onSelectProject={handleSelectProject}
             onOpenStudio={() => setActiveTab('studio')}
             onOpenAutomation={() => setActiveTab('automation')}

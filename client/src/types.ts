@@ -279,3 +279,40 @@ export interface ThreadsSyncedPost {
   projectId?: string;
   createdAt: string;
 }
+
+// Phase 9 - Public Threads Discovery & Source Monitoring
+export interface MonitoredSource {
+  id: string;
+  username: string;
+  displayName?: string;
+  avatarUrl?: string;
+  bio?: string;
+  followerCount: number;
+  isActive: boolean;
+  minLikesFilter: number;
+  autoQueueToAutomation: boolean;
+  lastScrapedAt?: string;
+  totalPostsDiscovered: number;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface DiscoveredPost {
+  id: string;
+  sourceId?: string;
+  threadsId: string;
+  permalink: string;
+  authorUsername: string;
+  authorName?: string;
+  authorAvatar?: string;
+  content: string;
+  mediaUrl?: string;
+  likesCount: number;
+  repliesCount: number;
+  rawComments?: string;
+  duplicateHash: string;
+  status: 'discovered' | 'imported_to_project' | 'queued_to_batch';
+  projectId?: string;
+  batchId?: string;
+  createdAt: string;
+}

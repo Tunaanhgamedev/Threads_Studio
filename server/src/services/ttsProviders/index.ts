@@ -14,16 +14,21 @@ export async function getTTSProvider(forceRefresh: boolean = false): Promise<ITT
     return cachedProvider;
   }
 
-  // 1. Check if user has local Piper server running
-  const piper = new PiperProvider();
-  if (await piper.isAvailable()) {
-    console.log('[TTS Provider] Piper TTS is ONLINE at http://localhost:5000');
-    cachedProvider = piper;
-    lastCheckTime = now;
-    return cachedProvider;
+  // Microsoft Edge Neural TTS provides authentic Vietnamese male & female voices (Hoài My & Nam Minh)
+  // with custom pitch & speed modulation for viral TikTok and meme personas.
+  // We use Piper only when explicitly specified via TTS_PROVIDER=piper or if edge-tts is disabled.
+  const preferred = (process.env.TTS_PROVIDER || 'edge').toLowerCase();
+
+  if (preferred === 'piper') {
+    const piper = new PiperProvider();
+    if (await piper.isAvailable()) {
+      console.log('[TTS Provider] Using local Piper TTS at http://localhost:5000');
+      cachedProvider = piper;
+      lastCheckTime = now;
+      return cachedProvider;
+    }
   }
 
-  // 2. Default to Microsoft Edge Neural TTS (Ultra-natural studio Vietnamese voices)
   const edge = new EdgeTTSProvider();
   cachedProvider = edge;
   lastCheckTime = now;

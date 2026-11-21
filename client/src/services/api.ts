@@ -1,8 +1,20 @@
-import { Project, VoiceItem, SystemSettings, RenderJob, StudioTemplate, BatchJob, BatchItem, ThreadsAccount, ThreadsSyncedPost } from '../types';
+import { 
+  Project, 
+  VoiceItem, 
+  SystemSettings, 
+  RenderJob, 
+  StudioTemplate, 
+  BatchJob, 
+  BatchItem, 
+  ThreadsAccount, 
+  ThreadsSyncedPost,
+  MonitoredSource,
+  DiscoveredPost
+} from '../types';
 
 const API_BASE = '/api';
 
-async function fetchJson<T = any>(url: string, init?: RequestInit, retries = 3): Promise<T> {
+async function fetchJson<T = any>(url: string, init?: RequestInit, retries = 6): Promise<T> {
   let lastErr: any;
   for (let attempt = 0; attempt < retries; attempt++) {
     try {
@@ -13,12 +25,12 @@ async function fetchJson<T = any>(url: string, init?: RequestInit, retries = 3):
         if (contentType.includes('application/json')) {
           return await res.json();
         }
-        // If 200 OK but returned HTML (e.g. Vite index.html fallback for proxy/server still starting)
+        // If 200 OK but returned HTML (e.g. Vite index.html fallback while proxy/server is still starting)
         if (attempt < retries - 1) {
-          await new Promise(r => setTimeout(r, 600));
+          await new Promise(r => setTimeout(r, 700));
           continue;
         }
-        throw new Error('Máy chủ đang khởi động, vui lòng thử lại sau giây lát.');
+        throw new Error('Máy chủ Backend (Port 3210) đang khởi động. Vui lòng bấm Tải lại.');
       }
 
       if (contentType.includes('application/json')) {
@@ -27,18 +39,18 @@ async function fetchJson<T = any>(url: string, init?: RequestInit, retries = 3):
       }
 
       if (attempt < retries - 1 && (res.status >= 500 || res.status === 404)) {
-        await new Promise(r => setTimeout(r, 600));
+        await new Promise(r => setTimeout(r, 700));
         continue;
       }
       throw new Error(`Máy chủ phản hồi mã ${res.status}`);
     } catch (err: any) {
       lastErr = err;
       if (attempt < retries - 1) {
-        await new Promise(r => setTimeout(r, 600));
+        await new Promise(r => setTimeout(r, 700));
       }
     }
   }
-  throw lastErr || new Error('Không thể kết nối máy chủ backend');
+  throw lastErr || new Error('Không thể kết nối máy chủ backend (Port 3210)');
 }
 
 export const api = {
@@ -452,5 +464,87 @@ export const api = {
     });
     if (!data.success) throw new Error(data.error);
     return { totalSynced: data.totalSynced, accountResults: data.accountResults };
+  },
+
+  // Media sample loader
+  async getSampleMedia(): Promise<{ subVideo: string | null; backgroundVideo: string | null; backgroundMusic: string | null }> {
+    const data = await fetchJson<{ success: boolean; subVideo: string | null; backgroundVideo: string | null; backgroundMusic: string | null }>(`${API_BASE}/media/sample-media`);
+    return {
+      subVideo: data.subVideo,
+      backgroundVideo: data.backgroundVideo,
+      backgroundMusic: data.backgroundMusic
+    };
+  },
+
+  // Phase 9: Public Discovery & Monitored Sources
+  async getMonitoredSources(): Promise<MonitoredSource[]> {
+    const data = await fetchJson<{ success: boolean; sources: MonitoredSource[]; error?: string }>(`${API_BASE}/discovery/sources`);
+    if (!data.success) throw new Error(data.error);
+    return data.sources || [];
+  },
+
+  async addMonitoredSource(payload: { username: string; minLikesFilter?: number; autoQueueToAutomation?: boolean }): Promise<MonitoredSource> {
+    const data = await fetchJson<{ success: boolean; source: MonitoredSource; error?: string }>(`${API_BASE}/discovery/sources`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(payload)
+    });
+    if (!data.success) throw new Error(data.error);
+    return data.source;
+  },
+
+  async syncMonitoredSource(id: string): Promise<{ discoveredCount: number; queuedCount: number }> {
+    const data = await fetchJson<{ success: boolean; discoveredCount: number; queuedCount: number; error?: string }>(`${API_BASE}/discovery/sources/${id}/sync`, {
+      method: 'POST'
+    });
+    if (!data.success) throw new Error(data.error);
+    return { discoveredCount: data.discoveredCount, queuedCount: data.queuedCount };
+  },
+
+  async deleteMonitoredSource(id: string): Promise<void> {
+    const data = await fetchJson<{ success: boolean; error?: string }>(`${API_BASE}/discovery/sources/${id}`, {
+      method: 'DELETE'
+    });
+    if (!data.success) throw new Error(data.error);
+  },
+
+  async getDiscoveredPosts(filters?: { sourceId?: string; status?: string; minLikes?: number; limit?: number }): Promise<DiscoveredPost[]> {
+    const params = new URLSearchParams();
+    if (filters?.sourceId) params.set('sourceId', filters.sourceId);
+    if (filters?.status) params.set('status', filters.status);
+    if (filters?.minLikes) params.set('minLikes', String(filters.minLikes));
+    if (filters?.limit) params.set('limit', String(filters.limit));
+    const query = params.toString() ? `?${params.toString()}` : '';
+    const data = await fetchJson<{ success: boolean; posts: DiscoveredPost[]; error?: string }>(`${API_BASE}/discovery/posts${query}`);
+    if (!data.success) throw new Error(data.error);
+    return data.posts || [];
+  },
+
+  async convertDiscoveredPostToProject(postId: string): Promise<Project> {
+    const data = await fetchJson<{ success: boolean; project: Project; error?: string }>(`${API_BASE}/discovery/posts/${postId}/create-project`, {
+      method: 'POST'
+    });
+    if (!data.success) throw new Error(data.error);
+    return data.project;
+  },
+
+  async queueDiscoveredPostToBatch(postId: string, batchId?: string): Promise<{ batchId: string; batchItemId: string }> {
+    const data = await fetchJson<{ success: boolean; batchId: string; batchItemId: string; error?: string }>(`${API_BASE}/discovery/posts/${postId}/queue-batch`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ batchId })
+    });
+    if (!data.success) throw new Error(data.error);
+    return { batchId: data.batchId, batchItemId: data.batchItemId };
+  },
+
+  async previewProfile(username: string): Promise<any> {
+    const data = await fetchJson<{ success: boolean; profile: any; recentPosts: any[]; error?: string }>(`${API_BASE}/discovery/preview-profile`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ username })
+    });
+    if (!data.success) throw new Error(data.error);
+    return data;
   }
 };

@@ -32,9 +32,39 @@ export class EdgeTTSProvider implements ITTSProvider {
     return Object.keys(this.voiceMap).map(k => ({ id: k, name: k }));
   }
 
+  private resolveVoice(rawVoice: string): VoiceMapping {
+    if (this.voiceMap[rawVoice]) return this.voiceMap[rawVoice];
+    const v = (rawVoice || '').toLowerCase();
+    if (v.includes('huyền') || v.includes('hoaimy')) {
+      return { voice: 'vi-VN-HoaiMyNeural', rateBonus: 0, pitch: '+0Hz' };
+    }
+    if (v.includes('hải đăng') || v.includes('haidang')) {
+      return { voice: 'vi-VN-NamMinhNeural', rateBonus: 5, pitch: '+3Hz' };
+    }
+    if (v.includes('thiện minh') || v.includes('thienminh')) {
+      return { voice: 'vi-VN-NamMinhNeural', rateBonus: 0, pitch: '+0Hz' };
+    }
+    if (v.includes('tiktok') && (v.includes('1') || v.includes('nữ') || v.includes('nu') || v.includes('viral'))) {
+      return { voice: 'vi-VN-HoaiMyNeural', rateBonus: 12, pitch: '+6Hz' };
+    }
+    if (v.includes('tiktok') && (v.includes('2') || v.includes('nam') || v.includes('vui'))) {
+      return { voice: 'vi-VN-NamMinhNeural', rateBonus: 10, pitch: '+4Hz' };
+    }
+    if (v.includes('adam') || v.includes('bựa') || v.includes('bua')) {
+      return { voice: 'vi-VN-NamMinhNeural', rateBonus: 18, pitch: '-4Hz' };
+    }
+    if (v.includes('linh') || v.includes('trung')) {
+      return { voice: 'vi-VN-HoaiMyNeural', rateBonus: -5, pitch: '-2Hz' };
+    }
+    if (v.includes('nam') || v.includes('male')) {
+      return { voice: 'vi-VN-NamMinhNeural', rateBonus: 0, pitch: '+0Hz' };
+    }
+    return { voice: 'vi-VN-HoaiMyNeural', rateBonus: 0, pitch: '+0Hz' };
+  }
+
   async synthesize(text: string, options: TTSSynthesizeOptions): Promise<TTSSynthesizeResult> {
     const rawVoice = options.voice || 'VieNeu - Ngọc Huyền (Nữ miền Bắc)';
-    const mapped = this.voiceMap[rawVoice] || { voice: 'vi-VN-HoaiMyNeural', rateBonus: 0, pitch: '+0Hz' };
+    const mapped = this.resolveVoice(rawVoice);
 
     // Speed calculation: speed 1.2 -> +20%, + rateBonus
     const baseSpeed = options.speed || 1.2;

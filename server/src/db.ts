@@ -185,6 +185,43 @@ db.exec(`
     created_at TEXT NOT NULL,
     FOREIGN KEY(account_id) REFERENCES threads_accounts(id) ON DELETE SET NULL
   );
+
+  -- Phase 9: Public Threads Discovery & Source Monitoring
+  CREATE TABLE IF NOT EXISTS monitored_sources (
+    id TEXT PRIMARY KEY,
+    username TEXT NOT NULL UNIQUE,
+    display_name TEXT,
+    avatar_url TEXT,
+    bio TEXT,
+    follower_count INTEGER DEFAULT 0,
+    is_active INTEGER NOT NULL DEFAULT 1,
+    min_likes_filter INTEGER NOT NULL DEFAULT 50,
+    auto_queue_to_automation INTEGER NOT NULL DEFAULT 0,
+    last_scraped_at TEXT,
+    total_posts_discovered INTEGER NOT NULL DEFAULT 0,
+    created_at TEXT NOT NULL,
+    updated_at TEXT NOT NULL
+  );
+
+  CREATE TABLE IF NOT EXISTS discovered_posts (
+    id TEXT PRIMARY KEY,
+    source_id TEXT,
+    threads_id TEXT NOT NULL,
+    permalink TEXT NOT NULL UNIQUE,
+    author_username TEXT NOT NULL,
+    author_name TEXT,
+    author_avatar TEXT,
+    content TEXT NOT NULL,
+    media_url TEXT,
+    likes_count INTEGER DEFAULT 0,
+    replies_count INTEGER DEFAULT 0,
+    raw_comments TEXT,
+    duplicate_hash TEXT NOT NULL,
+    status TEXT DEFAULT 'discovered',
+    project_id TEXT,
+    created_at TEXT NOT NULL,
+    FOREIGN KEY(source_id) REFERENCES monitored_sources(id) ON DELETE SET NULL
+  );
 `);
 
 // Migrations for Phase 6 - Advanced Video Studio

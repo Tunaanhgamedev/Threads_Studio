@@ -124,6 +124,7 @@ Threads_Studio/
 │   │   │   ├── StudioView.tsx         # Main interactive canvas editor
 │   │   │   ├── AutomationView.tsx     # Phase 7 batch automation dashboard
 │   │   │   ├── ThreadsConnectorView.tsx # Phase 8 Threads API & sync manager
+│   │   │   ├── DiscoveryView.tsx      # Phase 9 Public creator discovery & viral feed
 │   │   │   ├── SourcesView.tsx        # Threads URL ingestion
 │   │   │   ├── CommentsView.tsx       # Comment selection & filtering
 │   │   │   ├── ScreenshotsView.tsx    # Card render inspector
@@ -136,6 +137,7 @@ Threads_Studio/
 ├── server/                     # Express + TypeScript + SQLite Backend
 │   ├── src/
 │   │   ├── routes/
+│   │   │   ├── discovery.ts           # Phase 9 Public discovery routes
 │   │   │   ├── threadsConnector.ts    # Phase 8 API sync routes
 │   │   │   ├── automation.ts          # Phase 7 batch engine routes
 │   │   │   ├── media.ts               # Native Windows file & folder pickers
@@ -143,6 +145,7 @@ Threads_Studio/
 │   │   │   ├── tts.ts                 # TTS voice preview & synthesis
 │   │   │   └── screenshots.ts         # Card rendering routes
 │   │   ├── services/
+│   │   │   ├── discoveryService.ts    # Profile scraping & SHA-256 duplicate filter
 │   │   │   ├── threadsApiService.ts   # Meta Graph API & auto-sync cron
 │   │   │   ├── automationService.ts   # Batch queue processor
 │   │   │   ├── threadsExtractor.ts    # Live Playwright & oEmbed scraper
@@ -154,6 +157,7 @@ Threads_Studio/
 │   │   └── index.ts                   # Express server entrypoint (Port 3210)
 │   └── .env.example
 ├── storage/                    # Persistent output directories
+│   ├── sample_media/           # Built-in sample videos & BGM for 1-click preview
 │   ├── videos/                 # Rendered 1080p MP4 videos
 │   ├── images/                 # Rendered PNG Threads cards
 │   └── audio/                  # Synthesized 44.1kHz WAV voiceovers
@@ -161,6 +165,17 @@ Threads_Studio/
 ├── start.ps1                   # PowerShell launcher
 └── setup.ps1                   # Environment installer
 ```
+
+---
+
+### 🌐 Phase 9: Public Threads Discovery & Channel Monitoring
+
+Phase 9 unlocks automated tracking of viral public Threads creators without requiring user login:
+- **Username / Profile Discovery:** Search any public Threads creator `@handle` to extract verified profile stats, avatar, and live recent posts.
+- **Continuous Channel Monitoring:** Add target creators to the monitored deck with configurable engagement gates (`min_likes_filter`).
+- **Duplicate Prevention Engine:** SHA-256 fingerprinting (`sha256(username + content)`) guarantees identical posts are never processed twice across recurring runs.
+- **Direct Automation Pipeline:** 1-click conversion from discovered viral post into a single Studio Project or straight into Phase 7 Automation batch queue.
+- **Built-in Sample Media Pack:** Instant 1-click sample background video, satisfying meme overlay, and ambient Lo-Fi BGM for frictionless zero-setup testing.
 
 ---
 

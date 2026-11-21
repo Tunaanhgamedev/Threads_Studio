@@ -29,6 +29,10 @@ storage/audio/*
 !storage/audio/.gitkeep
 storage/temp/*
 !storage/temp/.gitkeep
+storage/sample_media/videos/*
+!storage/sample_media/videos/.gitkeep
+storage/sample_media/music/*
+!storage/sample_media/music/.gitkeep
 storage/*.sqlite
 storage/*.sqlite-wal
 storage/*.sqlite-shm
