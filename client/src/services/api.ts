@@ -10,7 +10,11 @@ import {
   ThreadsAccount, 
   ThreadsSyncedPost,
   MonitoredSource,
-  DiscoveredPost
+  DiscoveredPost,
+  YouTubeAccount,
+  YouTubePublishItem,
+  AvailableRenderedVideo,
+  YouTubePrivacyStatus
 } from '../types';
 
 const API_BASE = '/api';
@@ -594,6 +598,119 @@ export const api = {
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ username })
     });
+    if (!data.success) throw new Error(data.error);
+    return data;
+  },
+
+  // Phase 10 - YouTube Publishing & Social Automation
+  async getYouTubeAuthUrl(redirectUri?: string): Promise<{ url: string; clientIdSet: boolean }> {
+    const query = redirectUri ? `?redirectUri=${encodeURIComponent(redirectUri)}` : '';
+    const data = await fetchJson<{ success: boolean; url: string; clientIdSet: boolean; error?: string }>(`${API_BASE}/youtube/auth-url${query}`);
+    if (!data.success) throw new Error(data.error);
+    return { url: data.url, clientIdSet: data.clientIdSet };
+  },
+
+  async getYouTubeAccounts(): Promise<YouTubeAccount[]> {
+    const data = await fetchJson<{ success: boolean; accounts: YouTubeAccount[]; error?: string }>(`${API_BASE}/youtube/accounts`);
+    if (!data.success) throw new Error(data.error);
+    return data.accounts || [];
+  },
+
+  async addManualYouTubeAccount(payload: { channelTitle: string; channelHandle?: string; avatarUrl?: string; accessToken?: string }): Promise<YouTubeAccount> {
+    const data = await fetchJson<{ success: boolean; account: YouTubeAccount; error?: string }>(`${API_BASE}/youtube/accounts/manual`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(payload)
+    });
+    if (!data.success) throw new Error(data.error);
+    return data.account;
+  },
+
+  async deleteYouTubeAccount(id: string): Promise<void> {
+    const data = await fetchJson<{ success: boolean; error?: string }>(`${API_BASE}/youtube/accounts/${id}`, {
+      method: 'DELETE'
+    });
+    if (!data.success) throw new Error(data.error);
+  },
+
+  async getAvailableVideosForYouTube(): Promise<AvailableRenderedVideo[]> {
+    const data = await fetchJson<{ success: boolean; videos: AvailableRenderedVideo[]; error?: string }>(`${API_BASE}/youtube/videos/available`);
+    if (!data.success) throw new Error(data.error);
+    return data.videos || [];
+  },
+
+  async generateYouTubeMetadata(projectId?: string, customTitle?: string): Promise<{
+    title: string;
+    description: string;
+    tags: string[];
+    categoryId: string;
+    privacyStatus: YouTubePrivacyStatus;
+  }> {
+    const data = await fetchJson<{
+      success: boolean;
+      title: string;
+      description: string;
+      tags: string[];
+      categoryId: string;
+      privacyStatus: YouTubePrivacyStatus;
+      error?: string;
+    }>(`${API_BASE}/youtube/metadata/generate`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ projectId, customTitle })
+    });
+    if (!data.success) throw new Error(data.error);
+    return {
+      title: data.title,
+      description: data.description,
+      tags: data.tags,
+      categoryId: data.categoryId,
+      privacyStatus: data.privacyStatus
+    };
+  },
+
+  async getYouTubePublishes(): Promise<YouTubePublishItem[]> {
+    const data = await fetchJson<{ success: boolean; publishes: YouTubePublishItem[]; error?: string }>(`${API_BASE}/youtube/publishes`);
+    if (!data.success) throw new Error(data.error);
+    return data.publishes || [];
+  },
+
+  async createYouTubePublish(payload: Partial<YouTubePublishItem>): Promise<YouTubePublishItem> {
+    const data = await fetchJson<{ success: boolean; publish: YouTubePublishItem; error?: string }>(`${API_BASE}/youtube/publishes`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(payload)
+    });
+    if (!data.success) throw new Error(data.error);
+    return data.publish;
+  },
+
+  async updateYouTubePublish(id: string, updates: Partial<YouTubePublishItem>): Promise<void> {
+    const data = await fetchJson<{ success: boolean; error?: string }>(`${API_BASE}/youtube/publishes/${id}`, {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(updates)
+    });
+    if (!data.success) throw new Error(data.error);
+  },
+
+  async deleteYouTubePublish(id: string): Promise<void> {
+    const data = await fetchJson<{ success: boolean; error?: string }>(`${API_BASE}/youtube/publishes/${id}`, {
+      method: 'DELETE'
+    });
+    if (!data.success) throw new Error(data.error);
+  },
+
+  async uploadToYouTube(id: string): Promise<{ success: boolean; videoId?: string; error?: string }> {
+    const data = await fetchJson<{ success: boolean; videoId?: string; error?: string }>(`${API_BASE}/youtube/publishes/${id}/upload`, {
+      method: 'POST'
+    });
+    if (!data.success) throw new Error(data.error);
+    return data;
+  },
+
+  async checkYouTubeProcessingStatus(id: string): Promise<{ status: string; processingDetails?: any; embedUrl?: string }> {
+    const data = await fetchJson<{ success: boolean; status: string; processingDetails?: any; embedUrl?: string; error?: string }>(`${API_BASE}/youtube/publishes/${id}/status`);
     if (!data.success) throw new Error(data.error);
     return data;
   }

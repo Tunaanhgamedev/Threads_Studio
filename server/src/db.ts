@@ -241,7 +241,56 @@ db.exec(`
     count_24h INTEGER NOT NULL DEFAULT 0,
     window_start TEXT NOT NULL
   );
+
+  -- Phase 10: YouTube Publishing & Social Media Automation
+  CREATE TABLE IF NOT EXISTS youtube_accounts (
+    id TEXT PRIMARY KEY,
+    channel_id TEXT NOT NULL UNIQUE,
+    channel_title TEXT NOT NULL,
+    channel_handle TEXT,
+    avatar_url TEXT,
+    subscriber_count INTEGER DEFAULT 0,
+    video_count INTEGER DEFAULT 0,
+    access_token TEXT NOT NULL,
+    refresh_token TEXT,
+    token_expiry TEXT,
+    is_active INTEGER NOT NULL DEFAULT 1,
+    created_at TEXT NOT NULL,
+    updated_at TEXT NOT NULL
+  );
+
+  CREATE TABLE IF NOT EXISTS youtube_publishes (
+    id TEXT PRIMARY KEY,
+    account_id TEXT,
+    channel_title TEXT,
+    project_id TEXT,
+    project_title TEXT,
+    video_path TEXT NOT NULL,
+    video_url TEXT,
+    title TEXT NOT NULL,
+    description TEXT,
+    tags TEXT,
+    category_id TEXT DEFAULT '22',
+    privacy_status TEXT DEFAULT 'private',
+    publish_at TEXT,
+    thumbnail_path TEXT,
+    thumbnail_url TEXT,
+    youtube_video_id TEXT,
+    status TEXT DEFAULT 'draft',
+    upload_progress INTEGER DEFAULT 0,
+    error_message TEXT,
+    created_at TEXT NOT NULL,
+    updated_at TEXT NOT NULL,
+    published_at TEXT,
+    FOREIGN KEY(account_id) REFERENCES youtube_accounts(id) ON DELETE SET NULL,
+    FOREIGN KEY(project_id) REFERENCES projects(id) ON DELETE SET NULL
+  );
 `);
+
+// Migrations for Phase 10 - YouTube Publishing
+try { db.exec("ALTER TABLE youtube_publishes ADD COLUMN upload_progress INTEGER DEFAULT 0"); } catch {}
+try { db.exec("ALTER TABLE youtube_publishes ADD COLUMN youtube_video_id TEXT"); } catch {}
+try { db.exec("ALTER TABLE youtube_publishes ADD COLUMN publish_at TEXT"); } catch {}
 
 // Migrations for Phase 9 - Enhanced Monitored Sources & Rate Limits
 try { db.exec("ALTER TABLE monitored_sources ADD COLUMN source_type TEXT DEFAULT 'PROFILE'"); } catch {}

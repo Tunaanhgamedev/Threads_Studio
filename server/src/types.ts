@@ -347,3 +347,57 @@ export interface DiscoveryRateLimits {
     remaining: number;
   };
 }
+
+// ==================== Phase 10: YouTube Publishing ====================
+export type YouTubePrivacyStatus = 'public' | 'private' | 'unlisted';
+export type YouTubePublishStatus = 'draft' | 'queued' | 'uploading' | 'processing' | 'published' | 'failed';
+
+export interface YouTubeAccount {
+  id: string;
+  channelId: string;
+  channelTitle: string;
+  channelHandle?: string;
+  avatarUrl?: string;
+  subscriberCount?: number;
+  videoCount?: number;
+  tokenExpiry?: string;
+  isActive: boolean;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface YouTubePublishItem {
+  id: string;
+  accountId?: string;
+  channelTitle?: string;
+  projectId?: string;
+  projectTitle?: string;
+  videoPath: string;
+  videoUrl?: string;
+  title: string;
+  description: string;
+  tags: string[];
+  categoryId: string;
+  privacyStatus: YouTubePrivacyStatus;
+  publishAt?: string; // ISO 8601 for scheduled publishing
+  thumbnailPath?: string;
+  thumbnailUrl?: string;
+  youtubeVideoId?: string;
+  status: YouTubePublishStatus;
+  uploadProgress: number; // 0 - 100
+  errorMessage?: string;
+  createdAt: string;
+  updatedAt: string;
+  publishedAt?: string;
+}
+
+export interface AvailableRenderedVideo {
+  projectId: string;
+  projectTitle: string;
+  videoPath: string;
+  videoUrl: string;
+  thumbnailUrl?: string;
+  createdAt: string;
+  authorUsername?: string;
+  postContent?: string;
+}

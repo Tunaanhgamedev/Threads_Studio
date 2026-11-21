@@ -11,10 +11,11 @@ import {
   SlidersHorizontal,
   Zap,
   Radio,
-  Compass
+  Compass,
+  SquarePlay
 } from 'lucide-react';
 
-export type ActiveTab = 'studio' | 'automation' | 'connector' | 'discovery' | 'dashboard' | 'sources' | 'comments' | 'screenshots' | 'script' | 'queue' | 'library' | 'settings';
+export type ActiveTab = 'studio' | 'automation' | 'connector' | 'discovery' | 'youtube' | 'dashboard' | 'sources' | 'comments' | 'screenshots' | 'script' | 'queue' | 'library' | 'settings';
 
 interface SidebarProps {
   activeTab: ActiveTab;
@@ -33,6 +34,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
     { id: 'automation', label: 'Tự động hóa', icon: Zap, badge: 'Phase 7', badgeColor: 'bg-cyan-500/20 text-cyan-300' },
     { id: 'connector', label: 'Threads API Sync', icon: Radio, badge: 'Phase 8', badgeColor: 'bg-emerald-500/20 text-emerald-300' },
     { id: 'discovery', label: 'Khám phá Kênh', icon: Compass, badge: 'Phase 9', badgeColor: 'bg-purple-500/20 text-purple-300' },
+    { id: 'youtube', label: 'Đăng YouTube', icon: SquarePlay, badge: 'Phase 10', badgeColor: 'bg-rose-500/20 text-rose-300' },
     { id: 'dashboard', label: 'Dashboard', icon: LayoutDashboard },
     { id: 'sources', label: 'Nguồn Threads', icon: Globe },
     { id: 'comments', label: 'Bình luận', icon: MessageSquare },

@@ -1,7 +1,7 @@
 import crypto from 'crypto';
 
 const ALGORITHM = 'aes-256-gcm';
-const DEFAULT_KEY_SOURCE = process.env.THREADS_TOKEN_ENCRYPTION_KEY || 'threads_studio_master_encryption_key_2026_mmo';
+const DEFAULT_KEY_SOURCE = process.env.YOUTUBE_TOKEN_ENCRYPTION_KEY || process.env.THREADS_TOKEN_ENCRYPTION_KEY || 'threads_studio_master_encryption_key_2026_mmo';
 const MASTER_KEY = crypto.createHash('sha256').update(DEFAULT_KEY_SOURCE).digest();
 
 /**

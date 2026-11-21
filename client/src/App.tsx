@@ -5,6 +5,7 @@ import { StudioView } from './views/StudioView';
 import { AutomationView } from './views/AutomationView';
 import { ThreadsConnectorView } from './views/ThreadsConnectorView';
 import { DiscoveryView } from './views/DiscoveryView';
+import { YouTubePublishingView } from './views/YouTubePublishingView';
 import { DashboardView } from './views/DashboardView';
 import { SourcesView } from './views/SourcesView';
 import { CommentsView } from './views/CommentsView';
@@ -202,6 +203,13 @@ export const App: React.FC = () => {
             onSelectProject={handleSelectProject}
             onOpenStudio={() => setActiveTab('studio')}
             onOpenAutomation={() => setActiveTab('automation')}
+          />
+        )}
+
+        {activeTab === 'youtube' && (
+          <YouTubePublishingView
+            onOpenVideoModal={handleOpenVideoDirect}
+            onOpenStudio={() => setActiveTab('studio')}
           />
         )}
 
