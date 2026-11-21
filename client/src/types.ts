@@ -664,3 +664,111 @@ export interface CreateExperimentDto {
     thumbnailUrl?: string;
   }>;
 }
+
+// Phase 15 - Reliability, Security & Backup
+export interface ServiceHealthStatus {
+  name: string;
+  key: string;
+  status: 'healthy' | 'degraded' | 'offline';
+  version?: string;
+  latencyMs?: number;
+  message?: string;
+  details?: Record<string, any>;
+  lastChecked: string;
+}
+
+export interface SystemHealthReport {
+  overallStatus: 'healthy' | 'degraded' | 'offline';
+  checkedAt: string;
+  services: {
+    sqlite: ServiceHealthStatus;
+    ffmpeg: ServiceHealthStatus;
+    piper: ServiceHealthStatus;
+    ollama: ServiceHealthStatus;
+    playwright: ServiceHealthStatus;
+    oauth: ServiceHealthStatus;
+    queue: ServiceHealthStatus;
+  };
+  summary: {
+    healthyCount: number;
+    degradedCount: number;
+    offlineCount: number;
+    totalCount: number;
+  };
+}
+
+export interface StorageBreakdownStats {
+  sqliteBytes: number;
+  sqliteFormatted: string;
+  videosBytes: number;
+  videosFormatted: string;
+  imagesBytes: number;
+  imagesFormatted: string;
+  audioBytes: number;
+  audioFormatted: string;
+  tempBytes: number;
+  tempFormatted: string;
+  backupsBytes: number;
+  backupsFormatted: string;
+  logsBytes: number;
+  logsFormatted: string;
+  totalAppBytes: number;
+  totalAppFormatted: string;
+  diskFreeBytes?: number;
+  diskFreeFormatted?: string;
+  diskTotalBytes?: number;
+  diskTotalFormatted?: string;
+  diskUsagePercent?: number;
+}
+
+export interface CleanTempResult {
+  success: boolean;
+  deletedCount: number;
+  bytesFreed: number;
+  bytesFreedFormatted: string;
+  message: string;
+}
+
+export interface SystemBackupItem {
+  id: string;
+  backupType: 'manual' | 'scheduled' | 'pre-restore';
+  filename: string;
+  filePath: string;
+  fileSize: number;
+  fileSizeFormatted: string;
+  sha256Hash: string;
+  includesDatabase: boolean;
+  includesMedia: boolean;
+  includesEnv: boolean;
+  status: 'completed' | 'failed';
+  createdAt: string;
+  notes?: string;
+}
+
+export interface CreateBackupDto {
+  backupType?: 'manual' | 'scheduled' | 'pre-restore';
+  includeDatabase?: boolean;
+  includeMedia?: boolean;
+  includeEnv?: boolean;
+  notes?: string;
+}
+
+export interface BackupScheduleConfig {
+  id: string;
+  enabled: boolean;
+  intervalHours: number;
+  keepCount: number;
+  includeMedia: boolean;
+  includeEnv: boolean;
+  lastRunAt?: string | null;
+  nextRunAt?: string | null;
+  updatedAt: string;
+}
+
+export interface SystemLogEntry {
+  timestamp: string;
+  level: 'info' | 'warn' | 'error';
+  module: string;
+  message: string;
+  details?: any;
+}

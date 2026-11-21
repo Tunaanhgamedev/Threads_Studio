@@ -373,6 +373,34 @@ db.exec(`
     FOREIGN KEY(project_id) REFERENCES projects(id) ON DELETE CASCADE,
     FOREIGN KEY(account_id) REFERENCES youtube_accounts(id) ON DELETE CASCADE
   );
+
+  -- Phase 15: Reliability, Security & Backup
+  CREATE TABLE IF NOT EXISTS system_backups (
+    id TEXT PRIMARY KEY,
+    backup_type TEXT NOT NULL DEFAULT 'manual', -- manual, scheduled, pre-restore
+    filename TEXT NOT NULL,
+    file_path TEXT NOT NULL,
+    file_size INTEGER NOT NULL DEFAULT 0,
+    sha256_hash TEXT NOT NULL,
+    includes_database INTEGER NOT NULL DEFAULT 1,
+    includes_media INTEGER NOT NULL DEFAULT 0,
+    includes_env INTEGER NOT NULL DEFAULT 0,
+    status TEXT NOT NULL DEFAULT 'completed',
+    created_at TEXT NOT NULL,
+    notes TEXT
+  );
+
+  CREATE TABLE IF NOT EXISTS backup_schedules (
+    id TEXT PRIMARY KEY DEFAULT 'default',
+    enabled INTEGER NOT NULL DEFAULT 0,
+    interval_hours INTEGER NOT NULL DEFAULT 24,
+    keep_count INTEGER NOT NULL DEFAULT 5,
+    include_media INTEGER NOT NULL DEFAULT 0,
+    include_env INTEGER NOT NULL DEFAULT 0,
+    last_run_at TEXT,
+    next_run_at TEXT,
+    updated_at TEXT NOT NULL
+  );
 `);
 
 // Migrations for Phase 14 - Multi-Channel Management

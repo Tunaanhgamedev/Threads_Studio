@@ -31,9 +31,19 @@ Short-form platforms (**TikTok Creativity Program Beta, YouTube Shorts Monetizat
 
 ---
 
-## ⚡ Complete Phase Architecture (Phase 1 – Phase 14)
+## ⚡ Complete Phase Architecture (Phase 1 – Phase 15)
 
-### 📺 Phase 14: Multi-Channel Management & Workspace Orchestration (NEW)
+### 🛡️ Phase 15: System Reliability, Security & Backup Center (NEW)
+* **SQLite PRAGMA Health Checks:** Atomic SQLite verification (`PRAGMA quick_check;`), query latency benchmarking (ms), and database integrity validation.
+* **Full-Stack Dependency & Service Diagnostics:** Automated real-time status diagnostics for FFmpeg/FFprobe, Piper & VieNeu Voice TTS, Ollama Local AI (`http://localhost:11434`), Playwright Chromium headless engine, OAuth API token configurations, and active processing queues.
+* **Hot Atomic SQLite Backup via `VACUUM INTO`:** Safe snapshot creation using SQLite's native atomic hot backup mechanism that never locks or corrupts the database during active rendering or concurrent operations.
+* **Pre-Restore Rollback Shield:** Mandatory automatic safety snapshotting to `storage/pre-restore-[timestamp].sqlite` prior to any database overwrite, ensuring 100% fail-safe rollback from accidental restores.
+* **SHA-256 Integrity Verification:** Automated cryptographic hash calculation and verification ensuring bit-perfect backup validation.
+* **Automated Backup Scheduling & Retention Rotation:** Flexible automated backups (6h to 168h intervals), keep-count rotation (3 to 20 snapshots), with zero `.env` credential leaks.
+* **Storage Breakdown & Safe Temp Cleanup:** Real-time disk inspection with native `fs.statfsSync`, categorical storage breakdown (SQLite, Videos, Images, Audio, Temp, Backups, Logs), and safe 1-click temp cleanup that protects active rendering jobs.
+* **Structured JSONL Logging & Secret Redaction:** Centralized logging to `storage/logs/system.jsonl` with automatic 5MB file rotation and strict redaction of Bearer tokens, refresh tokens, client secrets, and AES encryption keys.
+
+### 📺 Phase 14: Multi-Channel Management & Workspace Orchestration
 * **Independent Multi-Channel OAuth Architecture:** Securely connect and operate multiple distinct YouTube channels in a single local workspace without token bleed, preserving native channel identities.
 * **Workspace Default Channel & Internal Channel Aliases:** Assign internal names (e.g. *Kênh Meme Shorts (Kênh A), Kênh Kể Chuyện (Kênh B)*) and establish a workspace default channel for effortless workflow routing.
 * **Smart Project-to-Channel Mappings:** Map specific content projects to their target channels; Publishing automatically suggests the designated channel while preserving full manual override flexibility.

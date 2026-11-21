@@ -17,6 +17,7 @@ import youtubeRouter from './routes/youtube.js';
 import aiIntelligenceRouter from './routes/aiIntelligence.js';
 import experimentsRouter from './routes/experiments.js';
 import { channelsRouter } from './routes/channels.js';
+import { reliabilityRouter } from './routes/reliability.js';
 import { ThreadsApiService } from './services/threadsApiService.js';
 import { DiscoveryService } from './services/discoveryService.js';
 import { getStorageDir } from './storagePath.js';
@@ -60,6 +61,7 @@ app.use('/api/youtube', youtubeRouter);
 app.use('/api/intelligence', aiIntelligenceRouter);
 app.use('/api/experiments', experimentsRouter);
 app.use('/api/channels', channelsRouter);
+app.use('/api/reliability', reliabilityRouter);
 
 // Health check
 app.get('/api/health', (req, res) => {

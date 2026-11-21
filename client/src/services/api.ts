@@ -23,7 +23,14 @@ import {
   ProjectChannelMappingItem,
   MultiChannelScheduleItem,
   YouTubeQuotaStats,
-  MultiChannelDashboardSummary
+  MultiChannelDashboardSummary,
+  SystemHealthReport,
+  StorageBreakdownStats,
+  CleanTempResult,
+  SystemBackupItem,
+  CreateBackupDto,
+  BackupScheduleConfig,
+  SystemLogEntry
 } from '../types';
 
 const API_BASE = '/api';
@@ -953,5 +960,85 @@ export const api = {
     const data = await fetchJson<{ success: boolean; summary: MultiChannelDashboardSummary; error?: string }>(`${API_BASE}/channels/dashboard-summary`);
     if (!data.success) throw new Error(data.error);
     return data.summary;
+  },
+
+  // ==================== Phase 15: Reliability, Security & Backup ====================
+  async getHealthChecks(): Promise<SystemHealthReport> {
+    const data = await fetchJson<{ success: boolean; data: SystemHealthReport; error?: string }>(`${API_BASE}/reliability/health`);
+    if (!data.success) throw new Error(data.error);
+    return data.data;
+  },
+
+  async getStorageStats(): Promise<StorageBreakdownStats> {
+    const data = await fetchJson<{ success: boolean; data: StorageBreakdownStats; error?: string }>(`${API_BASE}/reliability/storage`);
+    if (!data.success) throw new Error(data.error);
+    return data.data;
+  },
+
+  async cleanTempFiles(): Promise<CleanTempResult> {
+    const data = await fetchJson<{ success: boolean; data: CleanTempResult; error?: string }>(`${API_BASE}/reliability/clean-temp`, {
+      method: 'POST'
+    });
+    if (!data.success) throw new Error(data.error);
+    return data.data;
+  },
+
+  async getBackups(): Promise<SystemBackupItem[]> {
+    const data = await fetchJson<{ success: boolean; data: SystemBackupItem[]; error?: string }>(`${API_BASE}/reliability/backups`);
+    if (!data.success) throw new Error(data.error);
+    return data.data || [];
+  },
+
+  async createBackup(options?: CreateBackupDto): Promise<SystemBackupItem> {
+    const data = await fetchJson<{ success: boolean; data: SystemBackupItem; error?: string }>(`${API_BASE}/reliability/backups`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(options || {})
+    });
+    if (!data.success) throw new Error(data.error);
+    return data.data;
+  },
+
+  async deleteBackup(id: string): Promise<void> {
+    const data = await fetchJson<{ success: boolean; message?: string; error?: string }>(`${API_BASE}/reliability/backups/${id}`, {
+      method: 'DELETE'
+    });
+    if (!data.success) throw new Error(data.error);
+  },
+
+  async restoreBackup(id: string): Promise<{ success: boolean; preRestoreId: string; message: string }> {
+    const data = await fetchJson<{ success: boolean; data: { success: boolean; preRestoreId: string; message: string }; error?: string }>(`${API_BASE}/reliability/backups/${id}/restore`, {
+      method: 'POST'
+    });
+    if (!data.success) throw new Error(data.error);
+    return data.data;
+  },
+
+  async getBackupSchedule(): Promise<BackupScheduleConfig> {
+    const data = await fetchJson<{ success: boolean; data: BackupScheduleConfig; error?: string }>(`${API_BASE}/reliability/schedule`);
+    if (!data.success) throw new Error(data.error);
+    return data.data;
+  },
+
+  async updateBackupSchedule(config: Partial<BackupScheduleConfig>): Promise<BackupScheduleConfig> {
+    const data = await fetchJson<{ success: boolean; data: BackupScheduleConfig; error?: string }>(`${API_BASE}/reliability/schedule`, {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(config)
+    });
+    if (!data.success) throw new Error(data.error);
+    return data.data;
+  },
+
+  async getSystemLogs(filters?: { limit?: number; level?: string; search?: string }): Promise<SystemLogEntry[]> {
+    const params = new URLSearchParams();
+    if (filters?.limit) params.set('limit', String(filters.limit));
+    if (filters?.level) params.set('level', filters.level);
+    if (filters?.search) params.set('search', filters.search);
+    const query = params.toString() ? `?${params.toString()}` : '';
+
+    const data = await fetchJson<{ success: boolean; data: SystemLogEntry[]; error?: string }>(`${API_BASE}/reliability/logs${query}`);
+    if (!data.success) throw new Error(data.error);
+    return data.data || [];
   }
 };
