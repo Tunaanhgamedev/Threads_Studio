@@ -125,6 +125,16 @@ export const YouTubePublishingView: React.FC<YouTubePublishingViewProps> = ({
     setSelectedVideo(video);
     setThumbnailUrl(video.thumbnailUrl || '');
 
+    // Look up if this project has an assigned channel mapping (Phase 14)
+    if (video.projectId) {
+      api.getChannelForProject(video.projectId).then(ch => {
+        if (ch) {
+          setSelectedAccountId(ch.id);
+          addLog(`Tự động đề xuất kênh gán cho dự án: "${ch.internalName || ch.channelTitle}"`);
+        }
+      }).catch(() => {});
+    }
+
     // Auto-generate metadata from video/project
     try {
       const meta = await api.generateYouTubeMetadata(video.projectId, video.projectTitle);

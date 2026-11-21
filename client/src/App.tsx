@@ -9,6 +9,7 @@ import { YouTubePublishingView } from './views/YouTubePublishingView';
 import { YouTubeAnalyticsView } from './views/YouTubeAnalyticsView';
 import { AIIntelligenceView } from './views/AIIntelligenceView';
 import { ContentExperimentView } from './views/ContentExperimentView';
+import { MultiChannelView } from './views/MultiChannelView';
 import { DashboardView } from './views/DashboardView';
 import { SourcesView } from './views/SourcesView';
 import { CommentsView } from './views/CommentsView';
@@ -237,6 +238,14 @@ export const App: React.FC = () => {
             onOpenVideoModal={handleOpenVideoDirect}
             onOpenStudio={() => setActiveTab('studio')}
             onOpenPublishing={() => setActiveTab('youtube')}
+          />
+        )}
+
+        {activeTab === 'channels' && (
+          <MultiChannelView
+            onOpenStudio={() => setActiveTab('studio')}
+            onOpenPublishing={() => setActiveTab('youtube')}
+            onOpenAnalytics={() => setActiveTab('analytics')}
           />
         )}
 

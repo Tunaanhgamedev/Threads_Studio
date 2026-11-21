@@ -31,9 +31,17 @@ Short-form platforms (**TikTok Creativity Program Beta, YouTube Shorts Monetizat
 
 ---
 
-## ⚡ Complete Phase Architecture (Phase 1 – Phase 13)
+## ⚡ Complete Phase Architecture (Phase 1 – Phase 14)
 
-### 🧪 Phase 13: Content Experiment & A/B Testing Engine (NEW)
+### 📺 Phase 14: Multi-Channel Management & Workspace Orchestration (NEW)
+* **Independent Multi-Channel OAuth Architecture:** Securely connect and operate multiple distinct YouTube channels in a single local workspace without token bleed, preserving native channel identities.
+* **Workspace Default Channel & Internal Channel Aliases:** Assign internal names (e.g. *Kênh Meme Shorts (Kênh A), Kênh Kể Chuyện (Kênh B)*) and establish a workspace default channel for effortless workflow routing.
+* **Smart Project-to-Channel Mappings:** Map specific content projects to their target channels; Publishing automatically suggests the designated channel while preserving full manual override flexibility.
+* **Timezone & Granular Daily Upload Limits:** Configure custom broadcast timezones per channel (*GMT+7, EST, PST, GMT, JST*) and set per-channel daily upload caps to avoid algorithmic spam penalties.
+* **Centralized Multi-Channel Schedule:** Unified calendar/timeline view displaying scheduled, uploading, and published videos across all connected channels with automated timezone conversion.
+* **Real-Time YouTube API Quota Tracking:** Proactive monitoring of YouTube Data API v3 daily limits (10,000 units), per-action unit calculation, countdown to midnight PST reset, and remaining upload capacity.
+
+### 🧪 Phase 13: Content Experiment & A/B Testing Engine
 * **Title, Thumbnail & Combined A/B Testing:** Design and execute structured multi-variant tests across 2 to 3 variants (Control A, Challenger B, Optional C).
 * **Dual Testing Execution Modes:**
   - **Sequential Comparison Mode:** Phased sequential evaluation in YouTube Studio with automated daily metric normalization (`views/day`, `watchTime/day`, `retention %`) to completely eliminate duration bias.
@@ -165,6 +173,7 @@ Threads_Studio/
 │   │   │   ├── YouTubeAnalyticsView.tsx  # Phase 11 YouTube Analytics & retention
 │   │   │   ├── AIIntelligenceView.tsx    # Phase 12 AI ideas & title optimizer
 │   │   │   ├── ContentExperimentView.tsx # Phase 13 A/B testing & sequential evaluation
+│   │   │   ├── MultiChannelView.tsx      # Phase 14 Multi-channel management & schedule
 │   │   │   ├── SourcesView.tsx        # Threads URL ingestion
 │   │   │   ├── CommentsView.tsx       # Comment selection & filtering
 │   │   │   ├── ScreenshotsView.tsx    # Card render inspector

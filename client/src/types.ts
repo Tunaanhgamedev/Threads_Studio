@@ -375,6 +375,77 @@ export interface YouTubeAccount {
   isActive: boolean;
   createdAt: string;
   updatedAt: string;
+  // Phase 14: Multi-Channel management fields
+  internalName?: string;
+  timezone?: string;
+  dailyUploadLimit?: number;
+  isDefault?: boolean;
+  quotaUsedToday?: number;
+  quotaResetAt?: string;
+  todayUploadCount?: number;
+}
+
+export interface ProjectChannelMappingItem {
+  projectId: string;
+  projectTitle: string;
+  threadsUrl: string;
+  accountId?: string;
+  channelTitle?: string;
+  internalName?: string;
+  avatarUrl?: string;
+  assignedAt?: string;
+}
+
+export interface MultiChannelScheduleItem {
+  id: string;
+  publishId: string;
+  accountId: string;
+  channelTitle: string;
+  internalName?: string;
+  channelAvatar?: string;
+  channelTimezone: string;
+  projectId?: string;
+  projectTitle?: string;
+  title: string;
+  description?: string;
+  thumbnailUrl?: string;
+  videoUrl?: string;
+  publishAt: string;
+  publishAtLocal: string;
+  privacyStatus: string;
+  status: YouTubePublishStatus;
+}
+
+export interface YouTubeQuotaStats {
+  totalDailyQuota: number;
+  usedToday: number;
+  remainingUnits: number;
+  percentUsed: number;
+  estimatedUploadsRemaining: number;
+  resetAt: string;
+  resetCountdown: string;
+  accountsQuota: {
+    accountId: string;
+    channelTitle: string;
+    internalName?: string;
+    avatarUrl?: string;
+    uploadsToday: number;
+    dailyLimit: number;
+    quotaUsedUnits: number;
+  }[];
+}
+
+export interface MultiChannelDashboardSummary {
+  totalChannels: number;
+  activeChannels: number;
+  defaultChannelId?: string;
+  defaultChannelName?: string;
+  totalSubscribers: number;
+  totalVideos: number;
+  uploadsTodayTotal: number;
+  scheduledCount: number;
+  quotaStats: YouTubeQuotaStats;
+  recentPublishes: YouTubePublishItem[];
 }
 
 export interface YouTubePublishItem {

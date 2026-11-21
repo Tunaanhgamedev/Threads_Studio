@@ -19,7 +19,11 @@ import {
   AIIntelligenceReport,
   AITitleVariation,
   ContentExperiment,
-  CreateExperimentDto
+  CreateExperimentDto,
+  ProjectChannelMappingItem,
+  MultiChannelScheduleItem,
+  YouTubeQuotaStats,
+  MultiChannelDashboardSummary
 } from '../types';
 
 const API_BASE = '/api';
@@ -873,5 +877,81 @@ export const api = {
       method: 'DELETE'
     });
     if (!data.success) throw new Error(data.error);
+  },
+
+  // ==================== Phase 14: Multi-Channel Management ====================
+  async getChannels(): Promise<YouTubeAccount[]> {
+    const data = await fetchJson<{ success: boolean; channels: YouTubeAccount[]; error?: string }>(`${API_BASE}/channels`);
+    if (!data.success) throw new Error(data.error);
+    return data.channels || [];
+  },
+
+  async updateChannel(
+    id: string, 
+    updates: { 
+      internalName?: string; 
+      timezone?: string; 
+      dailyUploadLimit?: number; 
+      isDefault?: boolean; 
+    }
+  ): Promise<YouTubeAccount> {
+    const data = await fetchJson<{ success: boolean; channel: YouTubeAccount; error?: string }>(`${API_BASE}/channels/${id}`, {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(updates)
+    });
+    if (!data.success) throw new Error(data.error);
+    return data.channel;
+  },
+
+  async setDefaultChannel(id: string): Promise<void> {
+    const data = await fetchJson<{ success: boolean; message: string; error?: string }>(`${API_BASE}/channels/${id}/set-default`, {
+      method: 'POST'
+    });
+    if (!data.success) throw new Error(data.error);
+  },
+
+  async getProjectMappings(): Promise<ProjectChannelMappingItem[]> {
+    const data = await fetchJson<{ success: boolean; mappings: ProjectChannelMappingItem[]; error?: string }>(`${API_BASE}/channels/project-mappings`);
+    if (!data.success) throw new Error(data.error);
+    return data.mappings || [];
+  },
+
+  async assignProjectChannel(projectId: string, accountId: string | null): Promise<void> {
+    const data = await fetchJson<{ success: boolean; message: string; error?: string }>(`${API_BASE}/channels/project-mappings`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ projectId, accountId })
+    });
+    if (!data.success) throw new Error(data.error);
+  },
+
+  async getChannelForProject(projectId: string): Promise<YouTubeAccount | null> {
+    const data = await fetchJson<{ success: boolean; channel: YouTubeAccount | null; error?: string }>(`${API_BASE}/channels/project-mappings/${projectId}`);
+    if (!data.success) throw new Error(data.error);
+    return data.channel;
+  },
+
+  async getMultiChannelSchedule(filters?: { accountId?: string; status?: string }): Promise<MultiChannelScheduleItem[]> {
+    const params = new URLSearchParams();
+    if (filters?.accountId) params.append('accountId', filters.accountId);
+    if (filters?.status) params.append('status', filters.status);
+    const query = params.toString() ? `?${params.toString()}` : '';
+
+    const data = await fetchJson<{ success: boolean; schedule: MultiChannelScheduleItem[]; error?: string }>(`${API_BASE}/channels/schedule${query}`);
+    if (!data.success) throw new Error(data.error);
+    return data.schedule || [];
+  },
+
+  async getQuotaStats(): Promise<YouTubeQuotaStats> {
+    const data = await fetchJson<{ success: boolean; quota: YouTubeQuotaStats; error?: string }>(`${API_BASE}/channels/quota`);
+    if (!data.success) throw new Error(data.error);
+    return data.quota;
+  },
+
+  async getMultiDashboardSummary(): Promise<MultiChannelDashboardSummary> {
+    const data = await fetchJson<{ success: boolean; summary: MultiChannelDashboardSummary; error?: string }>(`${API_BASE}/channels/dashboard-summary`);
+    if (!data.success) throw new Error(data.error);
+    return data.summary;
   }
 };

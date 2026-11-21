@@ -15,10 +15,11 @@ import {
   SquarePlay,
   BarChart3,
   BrainCircuit,
-  FlaskConical
+  FlaskConical,
+  Layers
 } from 'lucide-react';
 
-export type ActiveTab = 'studio' | 'automation' | 'connector' | 'discovery' | 'youtube' | 'analytics' | 'intelligence' | 'experiments' | 'dashboard' | 'sources' | 'comments' | 'screenshots' | 'script' | 'queue' | 'library' | 'settings';
+export type ActiveTab = 'studio' | 'automation' | 'connector' | 'discovery' | 'youtube' | 'analytics' | 'intelligence' | 'experiments' | 'channels' | 'dashboard' | 'sources' | 'comments' | 'screenshots' | 'script' | 'queue' | 'library' | 'settings';
 
 interface SidebarProps {
   activeTab: ActiveTab;
@@ -41,6 +42,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
     { id: 'analytics', label: 'YouTube Analytics', icon: BarChart3, badge: 'Phase 11', badgeColor: 'bg-emerald-500/20 text-emerald-300' },
     { id: 'intelligence', label: 'AI Intelligence', icon: BrainCircuit, badge: 'Phase 12', badgeColor: 'bg-violet-500/20 text-violet-300' },
     { id: 'experiments', label: 'A/B Testing', icon: FlaskConical, badge: 'Phase 13', badgeColor: 'bg-amber-500/20 text-amber-300' },
+    { id: 'channels', label: 'Quản lý nhiều kênh', icon: Layers, badge: 'Phase 14', badgeColor: 'bg-rose-500/20 text-rose-300' },
     { id: 'dashboard', label: 'Dashboard', icon: LayoutDashboard },
     { id: 'sources', label: 'Nguồn Threads', icon: Globe },
     { id: 'comments', label: 'Bình luận', icon: MessageSquare },

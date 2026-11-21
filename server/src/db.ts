@@ -364,7 +364,24 @@ db.exec(`
     updated_at TEXT NOT NULL,
     FOREIGN KEY(account_id) REFERENCES youtube_accounts(id) ON DELETE SET NULL
   );
+
+  -- Phase 14: Multi-Channel Management & Project Mappings
+  CREATE TABLE IF NOT EXISTS project_channel_mappings (
+    project_id TEXT PRIMARY KEY,
+    account_id TEXT NOT NULL,
+    assigned_at TEXT NOT NULL,
+    FOREIGN KEY(project_id) REFERENCES projects(id) ON DELETE CASCADE,
+    FOREIGN KEY(account_id) REFERENCES youtube_accounts(id) ON DELETE CASCADE
+  );
 `);
+
+// Migrations for Phase 14 - Multi-Channel Management
+try { db.exec("ALTER TABLE youtube_accounts ADD COLUMN internal_name TEXT"); } catch {}
+try { db.exec("ALTER TABLE youtube_accounts ADD COLUMN timezone TEXT DEFAULT 'Asia/Ho_Chi_Minh'"); } catch {}
+try { db.exec("ALTER TABLE youtube_accounts ADD COLUMN daily_upload_limit INTEGER DEFAULT 10"); } catch {}
+try { db.exec("ALTER TABLE youtube_accounts ADD COLUMN is_default INTEGER DEFAULT 0"); } catch {}
+try { db.exec("ALTER TABLE youtube_accounts ADD COLUMN quota_used_today INTEGER DEFAULT 0"); } catch {}
+try { db.exec("ALTER TABLE youtube_accounts ADD COLUMN quota_reset_at TEXT"); } catch {}
 
 // Migrations for Phase 10 - YouTube Publishing
 try { db.exec("ALTER TABLE youtube_publishes ADD COLUMN upload_progress INTEGER DEFAULT 0"); } catch {}

@@ -20,6 +20,7 @@ model Project {
   scenes       Scene[]
   renderJobs   RenderJob[]
   videoConfig  String?     // JSON serialized VideoConfig
+  channelMapping ProjectChannelMapping?
 }
 
 model Post {
@@ -100,12 +101,27 @@ model YouTubeAccount {
   refreshToken    String?
   tokenExpiry     String?
   isActive        Boolean          @default(true)
+  internalName    String?
+  timezone        String           @default("Asia/Ho_Chi_Minh")
+  dailyUploadLimit Int             @default(10)
+  isDefault       Boolean          @default(false)
+  quotaUsedToday  Int              @default(0)
+  quotaResetAt    String?
   createdAt       DateTime         @default(now())
   updatedAt       DateTime         @updatedAt
   publishes       YouTubePublish[]
   reports         YouTubeAnalyticsReport[]
   aiReports       AIContentReport[]
   experiments     ContentExperiment[]
+  projectMappings ProjectChannelMapping[]
+}
+
+model ProjectChannelMapping {
+  projectId       String         @id
+  project         Project        @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  accountId       String
+  account         YouTubeAccount @relation(fields: [accountId], references: [id], onDelete: Cascade)
+  assignedAt      DateTime       @default(now())
 }
 
 model YouTubePublish {
