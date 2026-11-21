@@ -222,7 +222,38 @@ db.exec(`
     created_at TEXT NOT NULL,
     FOREIGN KEY(source_id) REFERENCES monitored_sources(id) ON DELETE SET NULL
   );
+
+  CREATE TABLE IF NOT EXISTS discovery_sync_logs (
+    id TEXT PRIMARY KEY,
+    source_id TEXT NOT NULL,
+    source_target TEXT NOT NULL,
+    source_type TEXT NOT NULL,
+    posts_found INTEGER NOT NULL DEFAULT 0,
+    new_posts_saved INTEGER NOT NULL DEFAULT 0,
+    queued_to_batch INTEGER NOT NULL DEFAULT 0,
+    status TEXT NOT NULL,
+    message TEXT,
+    created_at TEXT NOT NULL
+  );
+
+  CREATE TABLE IF NOT EXISTS discovery_rate_limits (
+    type TEXT PRIMARY KEY,
+    count_24h INTEGER NOT NULL DEFAULT 0,
+    window_start TEXT NOT NULL
+  );
 `);
+
+// Migrations for Phase 9 - Enhanced Monitored Sources & Rate Limits
+try { db.exec("ALTER TABLE monitored_sources ADD COLUMN source_type TEXT DEFAULT 'PROFILE'"); } catch {}
+try { db.exec("ALTER TABLE monitored_sources ADD COLUMN target TEXT"); } catch {}
+try { db.exec("ALTER TABLE monitored_sources ADD COLUMN search_mode TEXT DEFAULT 'TOP'"); } catch {}
+try { db.exec("ALTER TABLE monitored_sources ADD COLUMN media_type TEXT DEFAULT 'ALL'"); } catch {}
+try { db.exec("ALTER TABLE monitored_sources ADD COLUMN limit_per_sync INTEGER DEFAULT 20"); } catch {}
+try { db.exec("ALTER TABLE monitored_sources ADD COLUMN sync_interval_minutes INTEGER DEFAULT 60"); } catch {}
+try { db.exec("ALTER TABLE monitored_sources ADD COLUMN fetch_replies INTEGER DEFAULT 1"); } catch {}
+try { db.exec("ALTER TABLE monitored_sources ADD COLUMN next_sync_at TEXT"); } catch {}
+try { db.exec("ALTER TABLE discovered_posts ADD COLUMN media_type TEXT DEFAULT 'TEXT'"); } catch {}
+try { db.exec("ALTER TABLE discovered_posts ADD COLUMN batch_id TEXT"); } catch {}
 
 // Migrations for Phase 6 - Advanced Video Studio
 try { db.exec("ALTER TABLE scenes ADD COLUMN transition TEXT DEFAULT 'fade'"); } catch {}

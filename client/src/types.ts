@@ -281,17 +281,29 @@ export interface ThreadsSyncedPost {
 }
 
 // Phase 9 - Public Threads Discovery & Source Monitoring
+export type DiscoverySourceType = 'PROFILE' | 'KEYWORD' | 'TAG';
+export type DiscoverySearchMode = 'TOP' | 'RECENT';
+export type DiscoveryMediaType = 'ALL' | 'TEXT' | 'IMAGE' | 'VIDEO';
+
 export interface MonitoredSource {
   id: string;
+  sourceType: DiscoverySourceType;
+  target: string;
   username: string;
   displayName?: string;
   avatarUrl?: string;
   bio?: string;
   followerCount: number;
+  searchMode: DiscoverySearchMode;
+  mediaType: DiscoveryMediaType;
+  limitPerSync: number;
+  syncIntervalMinutes: number;
+  fetchReplies: boolean;
   isActive: boolean;
   minLikesFilter: number;
   autoQueueToAutomation: boolean;
   lastScrapedAt?: string;
+  nextSyncAt?: string;
   totalPostsDiscovered: number;
   createdAt: string;
   updatedAt: string;
@@ -307,6 +319,7 @@ export interface DiscoveredPost {
   authorAvatar?: string;
   content: string;
   mediaUrl?: string;
+  mediaType?: DiscoveryMediaType;
   likesCount: number;
   repliesCount: number;
   rawComments?: string;
@@ -315,4 +328,30 @@ export interface DiscoveredPost {
   projectId?: string;
   batchId?: string;
   createdAt: string;
+}
+
+export interface DiscoverySyncLog {
+  id: string;
+  sourceId: string;
+  sourceTarget: string;
+  sourceType: DiscoverySourceType;
+  postsFound: number;
+  newPostsSaved: number;
+  queuedToBatch: number;
+  status: 'success' | 'warning' | 'error';
+  message: string;
+  createdAt: string;
+}
+
+export interface DiscoveryRateLimits {
+  profileLookups: {
+    used24h: number;
+    max24h: number;
+    remaining: number;
+  };
+  keywordSearches: {
+    used24h: number;
+    max24h: number;
+    remaining: number;
+  };
 }

@@ -483,7 +483,18 @@ export const api = {
     return data.sources || [];
   },
 
-  async addMonitoredSource(payload: { username: string; minLikesFilter?: number; autoQueueToAutomation?: boolean }): Promise<MonitoredSource> {
+  async addMonitoredSource(payload: {
+    sourceType?: 'PROFILE' | 'KEYWORD' | 'TAG';
+    target: string;
+    username?: string;
+    searchMode?: 'TOP' | 'RECENT';
+    mediaType?: 'ALL' | 'TEXT' | 'IMAGE' | 'VIDEO';
+    limitPerSync?: number;
+    syncIntervalMinutes?: number;
+    fetchReplies?: boolean;
+    minLikesFilter?: number;
+    autoQueueToAutomation?: boolean;
+  }): Promise<MonitoredSource> {
     const data = await fetchJson<{ success: boolean; source: MonitoredSource; error?: string }>(`${API_BASE}/discovery/sources`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
@@ -501,6 +512,15 @@ export const api = {
     return { discoveredCount: data.discoveredCount, queuedCount: data.queuedCount };
   },
 
+  async toggleMonitoredSource(id: string, isActive: boolean): Promise<void> {
+    const data = await fetchJson<{ success: boolean; message: string; error?: string }>(`${API_BASE}/discovery/sources/${id}/toggle`, {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ isActive })
+    });
+    if (!data.success) throw new Error(data.error);
+  },
+
   async deleteMonitoredSource(id: string): Promise<void> {
     const data = await fetchJson<{ success: boolean; error?: string }>(`${API_BASE}/discovery/sources/${id}`, {
       method: 'DELETE'
@@ -508,10 +528,11 @@ export const api = {
     if (!data.success) throw new Error(data.error);
   },
 
-  async getDiscoveredPosts(filters?: { sourceId?: string; status?: string; minLikes?: number; limit?: number }): Promise<DiscoveredPost[]> {
+  async getDiscoveredPosts(filters?: { sourceId?: string; status?: string; mediaType?: string; minLikes?: number; limit?: number }): Promise<DiscoveredPost[]> {
     const params = new URLSearchParams();
     if (filters?.sourceId) params.set('sourceId', filters.sourceId);
     if (filters?.status) params.set('status', filters.status);
+    if (filters?.mediaType) params.set('mediaType', filters.mediaType);
     if (filters?.minLikes) params.set('minLikes', String(filters.minLikes));
     if (filters?.limit) params.set('limit', String(filters.limit));
     const query = params.toString() ? `?${params.toString()}` : '';
@@ -536,6 +557,34 @@ export const api = {
     });
     if (!data.success) throw new Error(data.error);
     return { batchId: data.batchId, batchItemId: data.batchItemId };
+  },
+
+  async searchPublic(params: {
+    type: 'PROFILE' | 'KEYWORD' | 'TAG';
+    query: string;
+    searchMode?: 'TOP' | 'RECENT';
+    mediaType?: 'ALL' | 'TEXT' | 'IMAGE' | 'VIDEO';
+    limit?: number;
+  }): Promise<{ profile?: any; posts: any[] }> {
+    const data = await fetchJson<{ success: boolean; profile?: any; posts: any[]; error?: string }>(`${API_BASE}/discovery/search`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(params)
+    });
+    if (!data.success) throw new Error(data.error);
+    return { profile: data.profile, posts: data.posts || [] };
+  },
+
+  async getDiscoveryLogs(limit = 50): Promise<any[]> {
+    const data = await fetchJson<{ success: boolean; logs: any[]; error?: string }>(`${API_BASE}/discovery/logs?limit=${limit}`);
+    if (!data.success) throw new Error(data.error);
+    return data.logs || [];
+  },
+
+  async getDiscoveryRateLimits(): Promise<any> {
+    const data = await fetchJson<{ success: boolean; rateLimits: any; error?: string }>(`${API_BASE}/discovery/rate-limits`);
+    if (!data.success) throw new Error(data.error);
+    return data.rateLimits;
   },
 
   async previewProfile(username: string): Promise<any> {

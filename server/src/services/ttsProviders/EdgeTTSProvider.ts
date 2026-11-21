@@ -35,25 +35,27 @@ export class EdgeTTSProvider implements ITTSProvider {
   private resolveVoice(rawVoice: string): VoiceMapping {
     if (this.voiceMap[rawVoice]) return this.voiceMap[rawVoice];
     const v = (rawVoice || '').toLowerCase();
-    if (v.includes('huyền') || v.includes('hoaimy')) {
+    
+    // Map standard IDs or partial names
+    if (v.includes('huyền') || v.includes('huyen') || v.includes('hoaimy') || v === 'vi-vn-ngochuyen') {
       return { voice: 'vi-VN-HoaiMyNeural', rateBonus: 0, pitch: '+0Hz' };
     }
-    if (v.includes('hải đăng') || v.includes('haidang')) {
+    if (v.includes('hải đăng') || v.includes('hai dang') || v.includes('haidang') || v === 'vi-vn-haidang') {
       return { voice: 'vi-VN-NamMinhNeural', rateBonus: 5, pitch: '+3Hz' };
     }
-    if (v.includes('thiện minh') || v.includes('thienminh')) {
+    if (v.includes('thiện minh') || v.includes('thien minh') || v.includes('thienminh') || v === 'vi-vn-thienminh') {
       return { voice: 'vi-VN-NamMinhNeural', rateBonus: 0, pitch: '+0Hz' };
     }
-    if (v.includes('tiktok') && (v.includes('1') || v.includes('nữ') || v.includes('nu') || v.includes('viral'))) {
+    if (v.includes('tiktok') && (v.includes('1') || v.includes('nữ') || v.includes('nu') || v.includes('viral')) || v === 'vi-vn-tiktok1') {
       return { voice: 'vi-VN-HoaiMyNeural', rateBonus: 12, pitch: '+6Hz' };
     }
-    if (v.includes('tiktok') && (v.includes('2') || v.includes('nam') || v.includes('vui'))) {
+    if (v.includes('tiktok') && (v.includes('2') || v.includes('nam') || v.includes('vui')) || v === 'vi-vn-tiktok2') {
       return { voice: 'vi-VN-NamMinhNeural', rateBonus: 10, pitch: '+4Hz' };
     }
-    if (v.includes('adam') || v.includes('bựa') || v.includes('bua')) {
+    if (v.includes('adam') || v.includes('bựa') || v.includes('bua') || v === 'vi-vn-adambua') {
       return { voice: 'vi-VN-NamMinhNeural', rateBonus: 18, pitch: '-4Hz' };
     }
-    if (v.includes('linh') || v.includes('trung')) {
+    if (v.includes('linh') || v.includes('trung') || v === 'vi-vn-mailinh') {
       return { voice: 'vi-VN-HoaiMyNeural', rateBonus: -5, pitch: '-2Hz' };
     }
     if (v.includes('nam') || v.includes('male')) {
@@ -96,14 +98,26 @@ export class EdgeTTSProvider implements ITTSProvider {
       pythonArgs.push(`--pitch=${mapped.pitch}`);
     }
 
-    // 1. Run Python edge-tts CLI
+    // 1. Run Python edge-tts CLI with timeout
     await new Promise<void>((resolve, reject) => {
       const proc = spawn('python', pythonArgs);
       let stderr = '';
+      let isSettled = false;
+
+      const timeoutTimer = setTimeout(() => {
+        if (!isSettled) {
+          isSettled = true;
+          try { proc.kill('SIGKILL'); } catch {}
+          reject(new Error('Edge TTS request timed out after 20 seconds'));
+        }
+      }, 20000);
 
       proc.stderr.on('data', d => { stderr += d.toString(); });
 
       proc.on('close', code => {
+        if (isSettled) return;
+        isSettled = true;
+        clearTimeout(timeoutTimer);
         if (code === 0 && fs.existsSync(tempMp3) && fs.statSync(tempMp3).size > 0) {
           resolve();
         } else {
@@ -112,6 +126,9 @@ export class EdgeTTSProvider implements ITTSProvider {
       });
 
       proc.on('error', err => {
+        if (isSettled) return;
+        isSettled = true;
+        clearTimeout(timeoutTimer);
         reject(new Error(`Failed to execute python edge-tts: ${err.message}`));
       });
     });

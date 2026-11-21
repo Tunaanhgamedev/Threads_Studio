@@ -217,7 +217,7 @@ export class VideoService {
 
     for (const sc of scenes) {
       if (context.canceled) return;
-      let matched = existingAudios.find(a => a.sceneId === sc.id && fs.existsSync(a.filePath));
+      let matched = existingAudios.find(a => a.sceneId === sc.id && fs.existsSync(a.filePath) && fs.statSync(a.filePath).size > 100);
       if (!matched) {
         this.appendLog(jobId, `Đang tạo giọng đọc cho phân cảnh: "${sc.title}"...`);
         matched = await VoiceEngine.generateSceneAudio(project, sc);
@@ -486,7 +486,7 @@ export class VideoService {
       const audioInputIdx = nextInputIndex++;
       const sceneVol = ((sceneAudios[i].scene.volume ?? 100) / 100).toFixed(2);
       const volTag = `[a_vol_${i}]`;
-      filterParts.push(`[${audioInputIdx}:a]volume=${sceneVol}${volTag}`);
+      filterParts.push(`[${audioInputIdx}:a]aformat=sample_fmts=s16:sample_rates=44100:channel_layouts=stereo,volume=${sceneVol}${volTag}`);
       audioFilterConcat += volTag;
     }
     audioFilterConcat += `concat=n=${sceneAudios.length}:v=0:a=1[v_audio]`;

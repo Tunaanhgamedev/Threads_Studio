@@ -122,7 +122,9 @@ export class VoiceEngine {
     const post = project.post;
     const selectedComments = project.comments.filter(c => c.selected);
     const primaryVoice = project.config.tts?.previewVoice || 'VieNeu - Ngọc Huyền (Nữ miền Bắc)';
-    const secondaryVoice = 'VieNeu - Hải Đăng (Nam miền Nam)';
+    const selectedVoicesList = project.config.tts?.selectedVoices || [];
+    const voicePool = selectedVoicesList.length > 0 ? selectedVoicesList : [primaryVoice, 'VieNeu - Hải Đăng (Nam miền Nam)'];
+    const voiceMode = project.config.tts?.randomVoiceMode || 'alternate';
 
     console.log(`[VoiceEngine] Generating AI script for project ${project.id}...`);
 
@@ -166,7 +168,15 @@ export class VoiceEngine {
 
     // 3. Highlighted Comments
     selectedComments.forEach((cmt, idx) => {
-      const voice = idx % 2 === 0 ? secondaryVoice : primaryVoice;
+      let voice: string;
+      if (voiceMode === 'fixed') {
+        voice = primaryVoice;
+      } else if (voiceMode === 'random') {
+        voice = voicePool[Math.floor(Math.random() * voicePool.length)];
+      } else {
+        // Alternate across selected voices, ensuring variety from narrator
+        voice = voicePool[(idx + 1) % voicePool.length] || primaryVoice;
+      }
       const commentText = aiResult.commentIntros[idx] || `Người dùng ${cmt.displayName} bình luận: "${cmt.content}"`;
 
       scenes.push({

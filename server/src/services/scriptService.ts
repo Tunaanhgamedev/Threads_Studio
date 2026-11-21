@@ -9,10 +9,13 @@ export class ScriptService {
       readAuthorName?: boolean;
       primaryVoice?: string;
       secondaryVoice?: string;
+      selectedVoices?: string[];
+      randomVoiceMode?: 'random' | 'fixed' | 'alternate';
     } = {}
   ): ScriptScene[] {
     const primaryVoice = options.primaryVoice || 'VieNeu - Ngọc Huyền (Nữ miền Bắc)';
-    const secondaryVoice = options.secondaryVoice || 'VieNeu - Hải Đăng (Nam miền Nam)';
+    const selectedList = options.selectedVoices && options.selectedVoices.length > 0 ? options.selectedVoices : [primaryVoice, options.secondaryVoice || 'VieNeu - Hải Đăng (Nam miền Nam)'];
+    const voiceMode = options.randomVoiceMode || 'alternate';
     const readAuthorName = options.readAuthorName ?? true;
     const mode = options.mode || 'full';
 
@@ -55,8 +58,14 @@ export class ScriptService {
     // 3. Comments (selected comments only)
     const selectedComments = comments.filter(c => c.selected);
     selectedComments.forEach((cmt, idx) => {
-      // Alternate voices for variety and natural conversational feel
-      const voice = idx % 2 === 0 ? secondaryVoice : primaryVoice;
+      let voice: string;
+      if (voiceMode === 'fixed') {
+        voice = primaryVoice;
+      } else if (voiceMode === 'random') {
+        voice = selectedList[Math.floor(Math.random() * selectedList.length)];
+      } else {
+        voice = selectedList[(idx + 1) % selectedList.length] || primaryVoice;
+      }
       const authorText = readAuthorName ? `Bình luận từ ${cmt.displayName}: ` : '';
       scenes.push({
         id: `sc_cmt_${cmt.id}`,

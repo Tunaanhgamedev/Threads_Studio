@@ -82,6 +82,8 @@ export const StudioView: React.FC<StudioViewProps> = ({
   const [bgVideoInfo, setBgVideoInfo] = useState<{ checked: boolean; exists: boolean; count: number; isFile?: boolean }>({ checked: false, exists: false, count: 0, isFile: false });
   const [subVideoInfo, setSubVideoInfo] = useState<{ checked: boolean; exists: boolean; count: number; isFile?: boolean }>({ checked: false, exists: false, count: 0, isFile: false });
   const [bgMusicInfo, setBgMusicInfo] = useState<{ checked: boolean; exists: boolean; count: number; isFile?: boolean }>({ checked: false, exists: false, count: 0, isFile: false });
+  const [bgVideoLoadError, setBgVideoLoadError] = useState(false);
+  const [subVideoLoadError, setSubVideoLoadError] = useState(false);
 
   // Position & sizing tabs: 'card' | 'subVideo'
   const [positionTab, setPositionTab] = useState<'card' | 'subVideo'>('card');
@@ -148,6 +150,7 @@ export const StudioView: React.FC<StudioViewProps> = ({
 
   // Real-time Folder Scanners
   useEffect(() => {
+    setBgVideoLoadError(false);
     if (!bgVideoFolder) {
       setBgVideoInfo({ checked: true, exists: false, count: 0, isFile: false });
       return;
@@ -164,6 +167,7 @@ export const StudioView: React.FC<StudioViewProps> = ({
   }, [bgVideoFolder]);
 
   useEffect(() => {
+    setSubVideoLoadError(false);
     if (!subVideoFolder) {
       setSubVideoInfo({ checked: true, exists: false, count: 0, isFile: false });
       return;
@@ -1267,7 +1271,7 @@ export const StudioView: React.FC<StudioViewProps> = ({
               }`}
             >
               {/* Background Video Preview */}
-              {bgVideoFolder && bgVideoInfo.exists && bgVideoInfo.count > 0 && (
+              {bgVideoFolder && bgVideoInfo.exists && (bgVideoInfo.count > 0 || bgVideoInfo.isFile) && !bgVideoLoadError && (
                 <video
                   key={bgVideoFolder}
                   src={`/api/media/stream-local?folder=${encodeURIComponent(bgVideoFolder)}&type=video`}
@@ -1275,6 +1279,7 @@ export const StudioView: React.FC<StudioViewProps> = ({
                   loop
                   muted
                   playsInline
+                  onError={() => setBgVideoLoadError(true)}
                   className="absolute inset-0 w-full h-full object-cover pointer-events-none"
                   style={{
                     filter: `${effects.blurBackground ? 'blur(6px)' : 'none'} ${effects.vignette ? 'brightness(0.7)' : 'brightness(0.85)'}`
@@ -1378,7 +1383,7 @@ export const StudioView: React.FC<StudioViewProps> = ({
                     positionTab === 'subVideo' ? 'ring-2 ring-cyan-400 ring-offset-2 ring-offset-slate-950' : 'border border-cyan-500/40'
                   }`}
                 >
-                  {subVideoFolder && subVideoInfo.exists && (subVideoInfo.count > 0 || subVideoInfo.isFile) ? (
+                  {subVideoFolder && subVideoInfo.exists && (subVideoInfo.count > 0 || subVideoInfo.isFile) && !subVideoLoadError ? (
                     <video
                       key={subVideoFolder}
                       src={`/api/media/stream-local?folder=${encodeURIComponent(subVideoFolder)}&type=video`}
@@ -1386,6 +1391,7 @@ export const StudioView: React.FC<StudioViewProps> = ({
                       loop
                       muted
                       playsInline
+                      onError={() => setSubVideoLoadError(true)}
                       className="w-full h-full object-cover pointer-events-none"
                     />
                   ) : (
@@ -1395,7 +1401,11 @@ export const StudioView: React.FC<StudioViewProps> = ({
                       </div>
                       <p className="text-[11px] font-semibold text-cyan-200">Video phụ (Meme / Gameplay)</p>
                       <p className="text-[10px] text-cyan-300/80 mt-0.5 mb-2">
-                        {subVideoFolder ? (subVideoInfo.exists ? 'Đang tải video...' : '⚠ Đường dẫn không tồn tại') : 'Chọn video phụ để ghép vào khung này'}
+                        {subVideoLoadError 
+                          ? '⚠ Định dạng video chưa hỗ trợ hoặc bị lỗi. Vui lòng bấm chọn file hoặc dùng video mẫu' 
+                          : subVideoFolder 
+                          ? (subVideoInfo.exists ? 'Đang tải video...' : '⚠ Đường dẫn không tồn tại trên máy') 
+                          : 'Chọn video phụ để ghép vào khung này'}
                       </p>
                       <div className="flex items-center gap-1.5" onClick={(e) => e.stopPropagation()}>
                         <button

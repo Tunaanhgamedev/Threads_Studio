@@ -22,6 +22,7 @@ import {
   Wand2
 } from 'lucide-react';
 import { ScriptScene, AudioItem, TransitionType } from '../types';
+import { api } from '../services/api';
 
 interface TimelineEditorProps {
   scenes: ScriptScene[];
@@ -45,7 +46,47 @@ export const TimelineEditor: React.FC<TimelineEditorProps> = ({
   const [selectedSceneId, setSelectedSceneId] = useState<string | null>(null);
   const [editingScene, setEditingScene] = useState<ScriptScene | null>(null);
   const [zoomLevel, setZoomLevel] = useState<number>(30); // pixels per second
+  const [isPlayingSceneAudio, setIsPlayingSceneAudio] = useState(false);
+  const inspectorAudioRef = useRef<HTMLAudioElement | null>(null);
   const playTimerRef = useRef<number | null>(null);
+
+  const handlePreviewSceneVoice = async () => {
+    if (!editingScene) return;
+    if (isPlayingSceneAudio && inspectorAudioRef.current) {
+      inspectorAudioRef.current.pause();
+      setIsPlayingSceneAudio(false);
+      return;
+    }
+
+    const existing = audios.find(a => a.sceneId === editingScene.id);
+    if (existing?.fileUrl) {
+      const audio = new Audio(existing.fileUrl);
+      inspectorAudioRef.current = audio;
+      setIsPlayingSceneAudio(true);
+      audio.onended = () => setIsPlayingSceneAudio(false);
+      audio.onerror = () => setIsPlayingSceneAudio(false);
+      await audio.play();
+      return;
+    }
+
+    setIsPlayingSceneAudio(true);
+    try {
+      const res = await api.previewVoice({
+        voiceName: editingScene.voice,
+        text: editingScene.text
+      });
+      if (res?.audioUrl) {
+        const audio = new Audio(res.audioUrl);
+        inspectorAudioRef.current = audio;
+        audio.onended = () => setIsPlayingSceneAudio(false);
+        audio.onerror = () => setIsPlayingSceneAudio(false);
+        await audio.play();
+      }
+    } catch (e) {
+      console.warn('Voice preview error:', e);
+      setIsPlayingSceneAudio(false);
+    }
+  };
 
   // Total duration of all selected scenes
   const totalDuration = scenes
@@ -464,6 +505,38 @@ export const TimelineEditor: React.FC<TimelineEditorProps> = ({
                 onChange={(e) => setEditingScene({ ...editingScene, volume: parseInt(e.target.value, 10) })}
                 className="w-24 accent-emerald-500"
               />
+            </div>
+
+            {/* Voice selector */}
+            <div>
+              <label className="block text-[10px] text-slate-400 mb-0.5">Giọng đọc cảnh này</label>
+              <div className="flex items-center gap-1.5">
+                <select
+                  value={editingScene.voice || 'VieNeu - Ngọc Huyền (Nữ miền Bắc)'}
+                  onChange={(e) => setEditingScene({ ...editingScene, voice: e.target.value })}
+                  className="bg-[#080d19] border border-[#192f52] rounded-lg px-2.5 py-1 text-xs text-white focus:outline-none focus:border-blue-500 cursor-pointer"
+                >
+                  <option value="VieNeu - Ngọc Huyền (Nữ miền Bắc)">Ngọc Huyền (Nữ Bắc)</option>
+                  <option value="VieNeu - Thiện Minh (Nam miền Bắc)">Thiện Minh (Nam Bắc)</option>
+                  <option value="VieNeu - Hải Đăng (Nam miền Nam)">Hải Đăng (Nam Nam)</option>
+                  <option value="TikTok Việt 1 (Nữ viral)">TikTok 1 (Nữ viral)</option>
+                  <option value="TikTok Việt 2 (Nam vui vẻ)">TikTok 2 (Nam vui vẻ)</option>
+                  <option value="Adam bựa - VieNeu">Adam bựa</option>
+                  <option value="VieNeu - Mai Linh (Nữ miền Trung)">Mai Linh (Nữ Trung)</option>
+                </select>
+                <button
+                  type="button"
+                  onClick={handlePreviewSceneVoice}
+                  title={isPlayingSceneAudio ? 'Dừng phát' : 'Nghe thử giọng cảnh này'}
+                  className={`p-1.5 rounded-lg border transition flex items-center justify-center ${
+                    isPlayingSceneAudio 
+                      ? 'bg-blue-600 text-white border-blue-500 animate-pulse' 
+                      : 'bg-[#14233c] hover:bg-blue-600 hover:text-white text-blue-300 border-[#20375e]'
+                  }`}
+                >
+                  <Volume2 size={13} />
+                </button>
+              </div>
             </div>
 
             {/* Action buttons */}

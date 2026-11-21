@@ -291,8 +291,8 @@ export const ScriptView: React.FC<ScriptViewProps> = ({
                         <option value="VieNeu - Hải Đăng (Nam miền Nam)">Hải Đăng (Nam Nam)</option>
                         <option value="VieNeu - Thiện Minh (Nam miền Bắc)">Thiện Minh (Nam Bắc)</option>
                         <option value="VieNeu - Mai Linh (Nữ miền Trung)">Mai Linh (Nữ Trung)</option>
-                        <option value="TikTok Việt 1">TikTok 1 (Nữ)</option>
-                        <option value="TikTok Việt 2">TikTok 2 (Nam)</option>
+                        <option value="TikTok Việt 1 (Nữ viral)">TikTok 1 (Nữ viral)</option>
+                        <option value="TikTok Việt 2 (Nam vui vẻ)">TikTok 2 (Nam vui vẻ)</option>
                         <option value="Adam bựa - VieNeu">Adam bựa</option>
                       </select>
 
