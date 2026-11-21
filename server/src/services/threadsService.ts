@@ -7,8 +7,12 @@ export class ThreadsService {
    */
   static parseUrl(url: string): { valid: boolean; postId?: string; username?: string } {
     try {
-      const parsed = new URL(url);
-      if (!parsed.hostname.includes('threads.net')) {
+      let targetUrl = url.trim().replace(/^https?:\/\/(www\.)?threads\.com/i, 'https://www.threads.net');
+      if (!targetUrl.startsWith('http://') && !targetUrl.startsWith('https://')) {
+        targetUrl = 'https://' + targetUrl;
+      }
+      const parsed = new URL(targetUrl);
+      if (!parsed.hostname.includes('threads.net') && !parsed.hostname.includes('threads.com')) {
         return { valid: false };
       }
       // Matches: https://www.threads.net/@username/post/POST_ID or /share/POST_ID or /t/POST_ID

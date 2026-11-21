@@ -18,17 +18,18 @@ const defaultFullConfig: VideoConfig = {
   commentFilterMode: 'most_likes',
   cardPosition: {
     x: 50.0,
-    y: 28.0,
-    scale: 105.0,
-    borderRadius: 16,
+    y: 38.0,
+    scale: 100.0,
+    borderRadius: 20,
     bgStyle: 'white'
   },
   subVideoPosition: {
     enabled: true,
+    layoutMode: 'fullscreen',
     x: 50.0,
     y: 65.0,
-    scale: 110.0,
-    borderRadius: 12,
+    scale: 100.0,
+    borderRadius: 16,
     folder: '',
     mute: true,
     loop: true
@@ -51,9 +52,9 @@ const defaultFullConfig: VideoConfig = {
   },
   watermark: {
     enabled: true,
-    text: '@ThreadsStudio',
-    position: 'top_right',
-    opacity: 0.75,
+    text: 'CRE: THUI NAO 🐾',
+    position: 'top_center',
+    opacity: 0.85,
     fontSize: 26
   },
   effects: {
@@ -64,10 +65,10 @@ const defaultFullConfig: VideoConfig = {
   },
   subtitleStyle: {
     enabled: true,
-    fontSize: 40,
-    primaryColor: '&H00FFFFFF',
+    fontSize: 44,
+    primaryColor: '&H0000E6FF',
     outlineColor: '&H00000000',
-    position: 'middle'
+    position: 'bottom'
   },
   defaultTransition: 'fade',
   selectedTemplateId: 'tiktok_trending'

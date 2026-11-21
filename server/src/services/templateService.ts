@@ -5,21 +5,22 @@ export class TemplateService {
     {
       id: 'tiktok_trending',
       name: 'TikTok Trending',
-      description: 'Khung hình 9:16 sống động, hiệu ứng chuyển cảnh trượt Slide và phụ đề vàng nổi bật.',
+      description: 'Khung hình 9:16 sống động, hiệu ứng trượt Slide, video gameplay nền dọc 100% và phụ đề vàng neon.',
       tag: 'Phổ biến nhất',
       aspectRatio: '9:16',
       cardPosition: {
         x: 50,
-        y: 28,
-        scale: 115,
-        borderRadius: 18,
+        y: 38,
+        scale: 100,
+        borderRadius: 20,
         bgStyle: 'white'
       },
       subVideoPosition: {
         enabled: true,
+        layoutMode: 'fullscreen',
         x: 50,
-        y: 68,
-        scale: 105,
+        y: 65,
+        scale: 100,
         borderRadius: 16,
         folder: '',
         mute: true,
@@ -27,9 +28,9 @@ export class TemplateService {
       },
       watermark: {
         enabled: true,
-        text: '@ThreadsStudio',
-        position: 'top_right',
-        opacity: 0.75,
+        text: 'CRE: THUI NAO 🐾',
+        position: 'top_center',
+        opacity: 0.85,
         fontSize: 26
       },
       effects: {
@@ -41,41 +42,42 @@ export class TemplateService {
       defaultTransition: 'slide_left',
       subtitleStyle: {
         enabled: true,
-        fontSize: 42,
-        primaryColor: '&H0000FFFF', // Yellow in BGR ASS
+        fontSize: 44,
+        primaryColor: '&H0000E6FF', // Yellow in BGR ASS
         outlineColor: '&H00000000',
-        position: 'middle'
+        position: 'bottom'
       }
     },
     {
       id: 'youtube_shorts',
       name: 'YouTube Shorts Story',
-      description: 'Phong cách kể chuyện thanh lịch với hiệu ứng mờ Fade và tối ưu giữ chân người xem.',
+      description: 'Phong cách kể chuyện thanh lịch với hiệu ứng mờ Fade, nền dọc 100% và phụ đề nổi bật.',
       tag: 'Kể chuyện',
       aspectRatio: '9:16',
       cardPosition: {
         x: 50,
-        y: 30,
-        scale: 110,
-        borderRadius: 12,
+        y: 38,
+        scale: 100,
+        borderRadius: 20,
         bgStyle: 'white'
       },
       subVideoPosition: {
         enabled: true,
+        layoutMode: 'fullscreen',
         x: 50,
-        y: 66,
+        y: 65,
         scale: 100,
-        borderRadius: 12,
+        borderRadius: 16,
         folder: '',
         mute: true,
         loop: true
       },
       watermark: {
         enabled: true,
-        text: 'Threads Story',
-        position: 'top_left',
-        opacity: 0.7,
-        fontSize: 24
+        text: 'CRE: THUI NAO 🐾',
+        position: 'top_center',
+        opacity: 0.85,
+        fontSize: 26
       },
       effects: {
         zoomPan: false,
@@ -86,8 +88,8 @@ export class TemplateService {
       defaultTransition: 'fade',
       subtitleStyle: {
         enabled: true,
-        fontSize: 38,
-        primaryColor: '&H00FFFFFF', // White
+        fontSize: 44,
+        primaryColor: '&H0000E6FF',
         outlineColor: '&H00000000',
         position: 'bottom'
       }
@@ -95,32 +97,33 @@ export class TemplateService {
     {
       id: 'reels_viral',
       name: 'Reels Viral Zoom',
-      description: 'Chuyển cảnh Zoom cận cảnh tạo kịch tính kết hợp khung viền bo tròn hiện đại.',
+      description: 'Chuyển cảnh Zoom kịch tính kết hợp khung viền bo tròn 20px hiện đại và video gameplay dọc 100%.',
       tag: 'Kịch tính',
       aspectRatio: '9:16',
       cardPosition: {
         x: 50,
-        y: 32,
-        scale: 118,
-        borderRadius: 22,
+        y: 38,
+        scale: 100,
+        borderRadius: 20,
         bgStyle: 'white'
       },
       subVideoPosition: {
         enabled: true,
+        layoutMode: 'fullscreen',
         x: 50,
-        y: 70,
-        scale: 95,
-        borderRadius: 18,
+        y: 65,
+        scale: 100,
+        borderRadius: 16,
         folder: '',
         mute: true,
         loop: true
       },
       watermark: {
         enabled: true,
-        text: '@ThreadsReels',
-        position: 'bottom_left',
-        opacity: 0.65,
-        fontSize: 22
+        text: 'CRE: THUI NAO 🐾',
+        position: 'top_center',
+        opacity: 0.85,
+        fontSize: 26
       },
       effects: {
         zoomPan: true,
@@ -131,10 +134,10 @@ export class TemplateService {
       defaultTransition: 'zoom_in',
       subtitleStyle: {
         enabled: true,
-        fontSize: 40,
-        primaryColor: '&H00FFFFFF',
+        fontSize: 44,
+        primaryColor: '&H0000E6FF',
         outlineColor: '&H00000000',
-        position: 'middle'
+        position: 'bottom'
       }
     },
     {

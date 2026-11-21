@@ -109,6 +109,8 @@ export const StudioView: React.FC<StudioViewProps> = ({
   const [isFetchingUrl, setIsFetchingUrl] = useState(false);
   const [isEditingContent, setIsEditingContent] = useState(false);
   const [postContent, setPostContent] = useState(project.post?.content || '');
+  const [authorDisplayName, setAuthorDisplayName] = useState(project.post?.displayName || 'Tác giả Threads');
+  const [authorUsername, setAuthorUsername] = useState(project.post?.username || 'threads_user');
 
   // Phase 6 - Advanced Video Studio States
   const [showTimeline, setShowTimeline] = useState(true);
@@ -356,6 +358,8 @@ export const StudioView: React.FC<StudioViewProps> = ({
     });
     setAspectRatio(project.config.aspectRatio);
     setPostContent(project.post.content);
+    setAuthorDisplayName(project.post.displayName);
+    setAuthorUsername(project.post.username);
 
     if (project.lastRenderJob) {
       setRenderProgress(project.lastRenderJob.progress);
@@ -469,9 +473,10 @@ export const StudioView: React.FC<StudioViewProps> = ({
   const handlePasteLink = async () => {
     try {
       const text = await navigator.clipboard.readText();
-      if (text && text.includes('threads.net')) {
-        setThreadsUrl(text);
-        handleFetchData(text);
+      if (text && (text.includes('threads.net') || text.includes('threads.com'))) {
+        const clean = text.trim().replace(/^https?:\/\/(www\.)?threads\.com/i, 'https://www.threads.net');
+        setThreadsUrl(clean);
+        handleFetchData(clean);
       }
     } catch {
       // fallback
@@ -480,21 +485,50 @@ export const StudioView: React.FC<StudioViewProps> = ({
 
   // Fetch thread data
   const handleFetchData = async (targetUrl?: string) => {
-    const urlToFetch = targetUrl || threadsUrl;
-    if (!urlToFetch) return;
+    const rawUrl = targetUrl || threadsUrl;
+    if (!rawUrl) return;
+    const urlToFetch = rawUrl.trim().replace(/^https?:\/\/(www\.)?threads\.com/i, 'https://www.threads.net');
+    setThreadsUrl(urlToFetch);
     setIsFetchingUrl(true);
     try {
       const updated = await api.fetchThread(project.id, urlToFetch);
       onUpdateProject(updated);
       setPostContent(updated.post.content);
+      setAuthorDisplayName(updated.post.displayName);
+      setAuthorUsername(updated.post.username);
       setLogs(prev => [
         ...prev,
-        `[${new Date().toLocaleTimeString()}] Đã thu thập thành công bài viết và ${updated.comments.length} bình luận từ Threads!`
+        `[${new Date().toLocaleTimeString()}] Đã nạp thành công bài viết của @${updated.post.username}!`
       ]);
     } catch (err: any) {
       alert('Không thể lấy dữ liệu: ' + err.message);
     } finally {
       setIsFetchingUrl(false);
+    }
+  };
+
+  const handleSavePostContent = async () => {
+    const updatedProject: Project = {
+      ...project,
+      post: {
+        ...project.post,
+        displayName: authorDisplayName.trim() || 'Tác giả',
+        username: authorUsername.trim().replace(/^@/, '') || 'threads_user',
+        content: postContent
+      }
+    };
+    onUpdateProject(updatedProject);
+    try {
+      await api.updateProject(project.id, {
+        post: {
+          displayName: authorDisplayName.trim() || 'Tác giả',
+          username: authorUsername.trim().replace(/^@/, '') || 'threads_user',
+          content: postContent
+        }
+      });
+      setLogs(prev => [...prev, `[${new Date().toLocaleTimeString()}] Đã lưu nội dung bài viết và tên tác giả thành công!`]);
+    } catch (err: any) {
+      console.warn('Failed to save post info:', err);
     }
   };
 
@@ -723,16 +757,51 @@ export const StudioView: React.FC<StudioViewProps> = ({
                 </button>
               </div>
 
-              {/* Editable Content Accordion */}
+              {/* Editable Content Drawer */}
               {isEditingContent && (
-                <div className="pt-2">
-                  <textarea
-                    rows={3}
-                    value={postContent}
-                    onChange={(e) => setPostContent(e.target.value)}
-                    className="w-full bg-[#13223b] border border-[#233e69] rounded-xl p-2.5 text-xs text-slate-200 focus:outline-none focus:border-blue-500 leading-relaxed"
-                    placeholder="Chỉnh sửa hoặc dán trực tiếp nội dung bài viết..."
-                  />
+                <div className="pt-2 p-3 bg-[#111e35] border border-[#213a63] rounded-xl space-y-2 mt-2">
+                  <div className="grid grid-cols-2 gap-2">
+                    <div>
+                      <label className="block text-[10px] text-slate-400 mb-0.5">Tên hiển thị tác giả</label>
+                      <input
+                        type="text"
+                        value={authorDisplayName}
+                        onChange={(e) => setAuthorDisplayName(e.target.value)}
+                        placeholder="VD: Hà Minh"
+                        className="w-full bg-[#162744] border border-[#233f6b] rounded-lg px-2.5 py-1.5 text-xs text-white focus:outline-none focus:border-blue-500 font-semibold"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-[10px] text-slate-400 mb-0.5">Tên tài khoản (@username)</label>
+                      <input
+                        type="text"
+                        value={authorUsername}
+                        onChange={(e) => setAuthorUsername(e.target.value)}
+                        placeholder="VD: haminhh.1999"
+                        className="w-full bg-[#162744] border border-[#233f6b] rounded-lg px-2.5 py-1.5 text-xs text-slate-200 focus:outline-none focus:border-blue-500 font-mono"
+                      />
+                    </div>
+                  </div>
+                  <div>
+                    <label className="block text-[10px] text-slate-400 mb-0.5">Nội dung bài viết</label>
+                    <textarea
+                      rows={3}
+                      value={postContent}
+                      onChange={(e) => setPostContent(e.target.value)}
+                      className="w-full bg-[#162744] border border-[#233f6b] rounded-lg p-2 text-xs text-slate-100 focus:outline-none focus:border-blue-500 leading-relaxed"
+                      placeholder="Dán hoặc gõ nội dung câu chuyện bài viết..."
+                    />
+                  </div>
+                  <div className="flex justify-between items-center pt-1">
+                    <span className="text-[10px] text-slate-400">Tự động cập nhật trực tiếp lên thẻ</span>
+                    <button
+                      type="button"
+                      onClick={handleSavePostContent}
+                      className="px-3 py-1 bg-blue-600 hover:bg-blue-500 text-white rounded-lg text-xs font-semibold shadow transition active:scale-95 cursor-pointer"
+                    >
+                      ✓ Lưu vào thẻ
+                    </button>
+                  </div>
                 </div>
               )}
 
@@ -1194,8 +1263,8 @@ export const StudioView: React.FC<StudioViewProps> = ({
                       onChange={(e) => setSubtitleStyle({ ...subtitleStyle, position: e.target.value as any })}
                       className="w-full bg-[#152542] border border-[#213b63] rounded-xl px-2.5 py-1 text-xs text-slate-200 focus:outline-none"
                     >
-                      <option value="middle">Giữa màn hình (TikTok)</option>
-                      <option value="bottom">Dưới đáy (YouTube)</option>
+                      <option value="bottom">Dưới đáy (Chuẩn Shorts / Reels / TikTok)</option>
+                      <option value="middle">Giữa màn hình</option>
                       <option value="top">Trên đỉnh</option>
                     </select>
                   </div>
@@ -1360,7 +1429,7 @@ export const StudioView: React.FC<StudioViewProps> = ({
                         <span className="font-bold text-xs">
                           {maskAuthor 
                             ? 'Người dùng ẩn danh' 
-                            : (isViewingPost ? project.post.displayName : currentComment?.displayName)}
+                            : (isViewingPost ? (authorDisplayName || project.post.displayName) : currentComment?.displayName)}
                         </span>
                         {project.post.verified && !maskAuthor && (
                           <div className="w-3.5 h-3.5 rounded-full bg-blue-500 text-white flex items-center justify-center text-[9px] font-bold">
@@ -1369,7 +1438,7 @@ export const StudioView: React.FC<StudioViewProps> = ({
                         )}
                       </div>
                       <span className="text-[10px] opacity-60">
-                        {maskAuthor ? '@anonymous' : `@${isViewingPost ? project.post.username : currentComment?.username}`}
+                        {maskAuthor ? '@anonymous' : `@${isViewingPost ? (authorUsername || project.post.username) : currentComment?.username}`}
                       </span>
                     </div>
                   </div>
