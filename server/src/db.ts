@@ -285,6 +285,40 @@ db.exec(`
     FOREIGN KEY(account_id) REFERENCES youtube_accounts(id) ON DELETE SET NULL,
     FOREIGN KEY(project_id) REFERENCES projects(id) ON DELETE SET NULL
   );
+
+  -- Phase 11: YouTube Analytics & Content Performance
+  CREATE TABLE IF NOT EXISTS youtube_analytics_reports (
+    id TEXT PRIMARY KEY,
+    account_id TEXT NOT NULL,
+    period_days INTEGER NOT NULL,
+    start_date TEXT NOT NULL,
+    end_date TEXT NOT NULL,
+    summary_metrics TEXT NOT NULL,
+    daily_data TEXT NOT NULL,
+    top_videos TEXT NOT NULL,
+    source TEXT NOT NULL DEFAULT 'live_youtube_api',
+    synced_at TEXT NOT NULL,
+    FOREIGN KEY(account_id) REFERENCES youtube_accounts(id) ON DELETE CASCADE
+  );
+
+  CREATE TABLE IF NOT EXISTS youtube_video_analytics (
+    id TEXT PRIMARY KEY,
+    youtube_video_id TEXT NOT NULL UNIQUE,
+    publish_id TEXT,
+    title TEXT,
+    thumbnail_url TEXT,
+    views INTEGER DEFAULT 0,
+    estimated_minutes_watched REAL DEFAULT 0,
+    average_view_duration_seconds REAL DEFAULT 0,
+    average_view_percentage REAL DEFAULT 0,
+    likes INTEGER DEFAULT 0,
+    comments INTEGER DEFAULT 0,
+    shares INTEGER DEFAULT 0,
+    subscribers_gained INTEGER DEFAULT 0,
+    retention_rate REAL DEFAULT 0,
+    synced_at TEXT NOT NULL,
+    FOREIGN KEY(publish_id) REFERENCES youtube_publishes(id) ON DELETE SET NULL
+  );
 `);
 
 // Migrations for Phase 10 - YouTube Publishing

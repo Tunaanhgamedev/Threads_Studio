@@ -31,9 +31,16 @@ Short-form platforms (**TikTok Creativity Program Beta, YouTube Shorts Monetizat
 
 ---
 
-## ⚡ Complete Phase Architecture (Phase 1 – Phase 10)
+## ⚡ Complete Phase Architecture (Phase 1 – Phase 11)
 
-### 📺 Phase 10: YouTube Publishing & Social Media Automation Engine (NEW)
+### 📊 Phase 11: YouTube Analytics & Content Performance Engine (NEW)
+* **YouTube Analytics API v2 Integration:** Connect and query official channel analytics with automatic OAuth token refresh and token caching.
+* **Core Video Metrics Dashboard:** Track Views, Watch Time (hours/minutes), Retention Rate (average view duration & percentage), and Net Subscribers gained/lost.
+* **Interactive Time-Series Growth Charts:** Visual SVG daily trend charts for 7, 28, and 90-day performance windows.
+* **Top Content Performance Ranking:** Data-driven video leaderboard ranking top performing Shorts by watch time, views, retention health (>70% benchmark), and viewer engagement (Likes, Comments, Shares).
+* **Closed-Loop Production Feedback:** 1-Click clone top performing video stories directly back into the studio to replicate winning formats.
+
+### 📺 Phase 10: YouTube Publishing & Social Media Automation Engine
 * **Google OAuth 2.0 & YouTube Data API v3:** Seamlessly connect Google accounts and manage YouTube channels directly within the desktop studio.
 * **Direct Resumable Upload:** Stream rendered vertical MP4 videos to YouTube Shorts with real-time upload progress tracking.
 * **Auto-Generated SEO Metadata:** 1-Click generation of high-converting titles (with `#Shorts`), rich descriptions with author credits, and curated tags (`#threads #story #reddit #viral`).

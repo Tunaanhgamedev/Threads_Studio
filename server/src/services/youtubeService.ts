@@ -19,6 +19,7 @@ export class YouTubeService {
   private static readonly SCOPES = [
     'https://www.googleapis.com/auth/youtube.upload',
     'https://www.googleapis.com/auth/youtube.readonly',
+    'https://www.googleapis.com/auth/yt-analytics.readonly',
     'https://www.googleapis.com/auth/userinfo.profile'
   ];
 
@@ -264,7 +265,7 @@ export class YouTubeService {
   /**
    * Get valid decrypted access token (refreshing automatically if needed)
    */
-  private static async getValidAccessToken(accountId: string): Promise<string> {
+  public static async getValidAccessToken(accountId: string): Promise<string> {
     const row = db.prepare('SELECT * FROM youtube_accounts WHERE id = ?').get(accountId) as any;
     if (!row) throw new Error('Không tìm thấy tài khoản YouTube');
 

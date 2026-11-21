@@ -14,7 +14,8 @@ import {
   YouTubeAccount,
   YouTubePublishItem,
   AvailableRenderedVideo,
-  YouTubePrivacyStatus
+  YouTubePrivacyStatus,
+  YouTubeAnalyticsOverview
 } from '../types';
 
 const API_BASE = '/api';
@@ -713,5 +714,27 @@ export const api = {
     const data = await fetchJson<{ success: boolean; status: string; processingDetails?: any; embedUrl?: string; error?: string }>(`${API_BASE}/youtube/publishes/${id}/status`);
     if (!data.success) throw new Error(data.error);
     return data;
+  },
+
+  // Phase 11 - YouTube Analytics & Content Performance
+  async getYouTubeAnalyticsOverview(accountId?: string, days = 28, forceRefresh = false): Promise<YouTubeAnalyticsOverview> {
+    const params = new URLSearchParams();
+    if (accountId) params.set('accountId', accountId);
+    params.set('days', days.toString());
+    if (forceRefresh) params.set('forceRefresh', 'true');
+
+    const data = await fetchJson<{ success: boolean; overview: YouTubeAnalyticsOverview; error?: string }>(`${API_BASE}/youtube/analytics/overview?${params.toString()}`);
+    if (!data.success) throw new Error(data.error);
+    return data.overview;
+  },
+
+  async syncYouTubeAnalytics(accountId?: string, days = 28): Promise<YouTubeAnalyticsOverview> {
+    const data = await fetchJson<{ success: boolean; overview: YouTubeAnalyticsOverview; error?: string }>(`${API_BASE}/youtube/analytics/sync`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ accountId, days })
+    });
+    if (!data.success) throw new Error(data.error);
+    return data.overview;
   }
 };

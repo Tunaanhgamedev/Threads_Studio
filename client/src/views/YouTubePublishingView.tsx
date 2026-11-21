@@ -17,7 +17,8 @@ import {
   Layers, 
   Calendar, 
   Check, 
-  Play 
+  Play,
+  BarChart3
 } from 'lucide-react';
 
 const Youtube: React.FC<{ size?: number; className?: string }> = ({ size = 18, className = '' }) => (
@@ -36,11 +37,13 @@ import {
 interface YouTubePublishingViewProps {
   onOpenVideoModal?: (url: string, title: string) => void;
   onOpenStudio?: () => void;
+  onOpenAnalytics?: () => void;
 }
 
 export const YouTubePublishingView: React.FC<YouTubePublishingViewProps> = ({
   onOpenVideoModal,
-  onOpenStudio
+  onOpenStudio,
+  onOpenAnalytics
 }) => {
   const [activeSubTab, setActiveSubTab] = useState<'publish' | 'history' | 'channels'>('publish');
   const [accounts, setAccounts] = useState<YouTubeAccount[]>([]);
@@ -391,6 +394,16 @@ export const YouTubePublishingView: React.FC<YouTubePublishingViewProps> = ({
             <Layers size={14} />
             <span>Quản lý Kênh YouTube ({accounts.length})</span>
           </button>
+
+          {onOpenAnalytics && (
+            <button
+              onClick={onOpenAnalytics}
+              className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-semibold text-emerald-400 hover:text-emerald-300 hover:bg-emerald-950/40 border border-emerald-800/40 transition ml-2 cursor-pointer"
+            >
+              <BarChart3 size={14} />
+              <span>Xem Analytics</span>
+            </button>
+          )}
         </div>
 
         {/* Selected target channel pill */}

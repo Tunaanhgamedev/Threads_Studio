@@ -1,5 +1,6 @@
 import { Router } from 'express';
 import { YouTubeService } from '../services/youtubeService.js';
+import { YouTubeAnalyticsService } from '../services/youtubeAnalyticsService.js';
 
 const router = Router();
 
@@ -194,6 +195,33 @@ router.get('/publishes/:id/status', async (req, res) => {
     const { id } = req.params;
     const status = await YouTubeService.checkProcessingStatus(id);
     res.json({ success: true, ...status });
+  } catch (err: any) {
+    res.status(500).json({ success: false, error: err.message });
+  }
+});
+
+// GET /api/youtube/analytics/overview - Fetch channel analytics (views, watch time, retention, top videos)
+router.get('/analytics/overview', async (req, res) => {
+  try {
+    const { accountId, days, forceRefresh } = req.query as { accountId?: string; days?: string; forceRefresh?: string };
+    const periodDays = Number(days) || 28;
+    const isForce = forceRefresh === 'true' || forceRefresh === '1';
+    
+    const overview = await YouTubeAnalyticsService.getOverview(accountId || '', periodDays, isForce);
+    res.json({ success: true, overview });
+  } catch (err: any) {
+    res.status(500).json({ success: false, error: err.message });
+  }
+});
+
+// POST /api/youtube/analytics/sync - Force immediate refresh of analytics
+router.post('/analytics/sync', async (req, res) => {
+  try {
+    const { accountId, days } = req.body || {};
+    const periodDays = Number(days) || 28;
+    
+    const overview = await YouTubeAnalyticsService.getOverview(accountId || '', periodDays, true);
+    res.json({ success: true, overview });
   } catch (err: any) {
     res.status(500).json({ success: false, error: err.message });
   }

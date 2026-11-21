@@ -6,6 +6,7 @@ import { AutomationView } from './views/AutomationView';
 import { ThreadsConnectorView } from './views/ThreadsConnectorView';
 import { DiscoveryView } from './views/DiscoveryView';
 import { YouTubePublishingView } from './views/YouTubePublishingView';
+import { YouTubeAnalyticsView } from './views/YouTubeAnalyticsView';
 import { DashboardView } from './views/DashboardView';
 import { SourcesView } from './views/SourcesView';
 import { CommentsView } from './views/CommentsView';
@@ -210,6 +211,15 @@ export const App: React.FC = () => {
           <YouTubePublishingView
             onOpenVideoModal={handleOpenVideoDirect}
             onOpenStudio={() => setActiveTab('studio')}
+            onOpenAnalytics={() => setActiveTab('analytics')}
+          />
+        )}
+
+        {activeTab === 'analytics' && (
+          <YouTubeAnalyticsView
+            onOpenVideoModal={handleOpenVideoDirect}
+            onOpenStudio={() => setActiveTab('studio')}
+            onOpenPublishing={() => setActiveTab('youtube')}
           />
         )}
 

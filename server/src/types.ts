@@ -401,3 +401,56 @@ export interface AvailableRenderedVideo {
   authorUsername?: string;
   postContent?: string;
 }
+
+// ==================== Phase 11: YouTube Analytics ====================
+export interface YouTubeDailyMetric {
+  date: string;
+  views: number;
+  estimatedMinutesWatched: number;
+  averageViewDurationSeconds: number;
+  subscribersGained: number;
+  subscribersLost: number;
+  likes: number;
+  comments: number;
+  shares: number;
+}
+
+export interface YouTubeTopVideoMetric {
+  videoId: string;
+  title: string;
+  thumbnailUrl?: string;
+  views: number;
+  estimatedMinutesWatched: number;
+  averageViewDurationSeconds: number;
+  averageViewPercentage: number;
+  likes: number;
+  comments: number;
+  shares: number;
+  subscribersGained: number;
+  retentionRate: number; // 0 - 100 percentage
+}
+
+export interface YouTubeAnalyticsOverview {
+  accountId: string;
+  channelTitle: string;
+  periodDays: number;
+  startDate: string;
+  endDate: string;
+  totalViews: number;
+  totalMinutesWatched: number;
+  totalHoursWatched: number;
+  averageViewDurationSeconds: number;
+  averageViewPercentage: number;
+  netSubscribers: number;
+  subscribersGained: number;
+  subscribersLost: number;
+  totalLikes: number;
+  totalComments: number;
+  totalShares: number;
+  viewsGrowthPercent?: number;
+  watchTimeGrowthPercent?: number;
+  dailyData: YouTubeDailyMetric[];
+  topVideos: YouTubeTopVideoMetric[];
+  lastSyncedAt: string;
+  source: 'live_youtube_api' | 'simulated_demo';
+}
