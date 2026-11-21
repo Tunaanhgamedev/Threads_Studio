@@ -319,6 +319,26 @@ db.exec(`
     synced_at TEXT NOT NULL,
     FOREIGN KEY(publish_id) REFERENCES youtube_publishes(id) ON DELETE SET NULL
   );
+
+  -- Phase 12: AI Content Intelligence
+  CREATE TABLE IF NOT EXISTS ai_content_reports (
+    id TEXT PRIMARY KEY,
+    account_id TEXT NOT NULL,
+    channel_title TEXT NOT NULL,
+    report_title TEXT NOT NULL,
+    summary_narrative TEXT NOT NULL,
+    performance_insights TEXT NOT NULL,
+    content_ideas TEXT NOT NULL,
+    title_suggestions TEXT NOT NULL,
+    thumbnail_concepts TEXT NOT NULL,
+    action_plan TEXT NOT NULL,
+    markdown_report TEXT NOT NULL,
+    ai_model_used TEXT NOT NULL,
+    source TEXT NOT NULL DEFAULT 'smart_heuristic',
+    status TEXT NOT NULL DEFAULT 'active',
+    created_at TEXT NOT NULL,
+    FOREIGN KEY(account_id) REFERENCES youtube_accounts(id) ON DELETE CASCADE
+  );
 `);
 
 // Migrations for Phase 10 - YouTube Publishing
@@ -361,20 +381,22 @@ if (existingProjectCount.count === 0) {
     commentFilterMode: 'most_likes',
     cardPosition: {
       x: 50.0,
-      y: 28.0,
-      scale: 105.0,
-      borderRadius: 16,
+      y: 40.0,
+      scale: 92.0,
+      borderRadius: 18,
       bgStyle: 'white'
     },
     subVideoPosition: {
       enabled: true,
+      layoutMode: 'fullscreen',
       x: 50.0,
-      y: 65.0,
-      scale: 110.0,
-      borderRadius: 12,
+      y: 50.0,
+      scale: 100.0,
+      borderRadius: 0,
       folder: '',
       mute: true,
-      loop: true
+      loop: true,
+      brightness: 80
     },
     backgroundVideoFolder: '',
     backgroundMusic: {
@@ -391,6 +413,26 @@ if (existingProjectCount.count === 0) {
       readComments: true,
       readAuthorName: true,
       voiceVolume: 85
+    },
+    watermark: {
+      enabled: true,
+      text: 'CRE: THUI NAO 🐾',
+      position: 'top_center',
+      opacity: 0.90,
+      fontSize: 26
+    },
+    subtitleStyle: {
+      enabled: true,
+      fontSize: 44,
+      primaryColor: '&H0000E6FF',
+      outlineColor: '&H00000000',
+      position: 'bottom'
+    },
+    effects: {
+      zoomPan: true,
+      blurBackground: false,
+      vignette: false,
+      kenBurns: false
     }
   };
 

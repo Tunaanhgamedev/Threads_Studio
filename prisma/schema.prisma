@@ -104,6 +104,7 @@ model YouTubeAccount {
   updatedAt       DateTime         @updatedAt
   publishes       YouTubePublish[]
   reports         YouTubeAnalyticsReport[]
+  aiReports       AIContentReport[]
 }
 
 model YouTubePublish {
@@ -164,4 +165,23 @@ model YouTubeVideoAnalytics {
   subscribersGained          Int             @default(0)
   retentionRate              Float           @default(0)
   syncedAt                   DateTime        @default(now())
+}
+
+model AIContentReport {
+  id                  String         @id
+  accountId           String
+  account             YouTubeAccount @relation(fields: [accountId], references: [id], onDelete: Cascade)
+  channelTitle        String
+  reportTitle         String
+  summaryNarrative    String
+  performanceInsights String         // JSON
+  contentIdeas        String         // JSON
+  titleSuggestions    String         // JSON
+  thumbnailConcepts   String         // JSON
+  actionPlan          String         // JSON
+  markdownReport      String
+  aiModelUsed         String
+  source              String         @default("smart_heuristic")
+  status              String         @default("active")
+  createdAt           DateTime       @default(now())
 }

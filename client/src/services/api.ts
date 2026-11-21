@@ -15,7 +15,9 @@ import {
   YouTubePublishItem,
   AvailableRenderedVideo,
   YouTubePrivacyStatus,
-  YouTubeAnalyticsOverview
+  YouTubeAnalyticsOverview,
+  AIIntelligenceReport,
+  AITitleVariation
 } from '../types';
 
 const API_BASE = '/api';
@@ -736,5 +738,55 @@ export const api = {
     });
     if (!data.success) throw new Error(data.error);
     return data.overview;
+  },
+
+  // Phase 12 - AI Content Intelligence
+  async generateAIIntelligenceReport(accountId?: string, periodDays = 28): Promise<AIIntelligenceReport> {
+    const data = await fetchJson<{ success: boolean; report: AIIntelligenceReport; error?: string }>(`${API_BASE}/intelligence/generate`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ accountId, periodDays })
+    });
+    if (!data.success) throw new Error(data.error);
+    return data.report;
+  },
+
+  async getAIIntelligenceReports(accountId?: string): Promise<AIIntelligenceReport[]> {
+    const query = accountId ? `?accountId=${encodeURIComponent(accountId)}` : '';
+    const data = await fetchJson<{ success: boolean; reports: AIIntelligenceReport[]; error?: string }>(`${API_BASE}/intelligence/reports${query}`);
+    if (!data.success) throw new Error(data.error);
+    return data.reports || [];
+  },
+
+  async getAIIntelligenceReport(id: string): Promise<AIIntelligenceReport> {
+    const data = await fetchJson<{ success: boolean; report: AIIntelligenceReport; error?: string }>(`${API_BASE}/intelligence/reports/${id}`);
+    if (!data.success) throw new Error(data.error);
+    return data.report;
+  },
+
+  async deleteAIIntelligenceReport(id: string): Promise<void> {
+    const data = await fetchJson<{ success: boolean; error?: string }>(`${API_BASE}/intelligence/reports/${id}`, {
+      method: 'DELETE'
+    });
+    if (!data.success) throw new Error(data.error);
+  },
+
+  async updateAIIdeaStatus(reportId: string, ideaId: string, status: 'accepted' | 'dismissed' | 'pending'): Promise<void> {
+    const data = await fetchJson<{ success: boolean; error?: string }>(`${API_BASE}/intelligence/reports/${reportId}/ideas/${ideaId}`, {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ status })
+    });
+    if (!data.success) throw new Error(data.error);
+  },
+
+  async optimizeTitleWithAI(title: string): Promise<AITitleVariation[]> {
+    const data = await fetchJson<{ success: boolean; variations: AITitleVariation[]; error?: string }>(`${API_BASE}/intelligence/optimize-title`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ title })
+    });
+    if (!data.success) throw new Error(data.error);
+    return data.variations || [];
   }
 };

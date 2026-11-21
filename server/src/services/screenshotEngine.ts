@@ -69,7 +69,8 @@ export class ScreenshotEngine {
       <head>
         <meta charset="utf-8">
         <link rel="preconnect" href="https://fonts.googleapis.com">
-        <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+        <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+        <link href="https://fonts.googleapis.com/css2?family=Be+Vietnam+Pro:wght@400;500;600;700;800&family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
         <style>
           * { box-sizing: border-box; margin: 0; padding: 0; }
           body {
@@ -78,7 +79,7 @@ export class ScreenshotEngine {
             display: inline-block;
             padding: 30px;
             background: transparent !important;
-            font-family: 'Plus Jakarta Sans', -apple-system, sans-serif;
+            font-family: 'Be Vietnam Pro', 'Plus Jakarta Sans', -apple-system, sans-serif;
           }
           .card {
             width: 820px;
@@ -250,7 +251,8 @@ export class ScreenshotEngine {
       <head>
         <meta charset="utf-8">
         <link rel="preconnect" href="https://fonts.googleapis.com">
-        <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+        <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+        <link href="https://fonts.googleapis.com/css2?family=Be+Vietnam+Pro:wght@400;500;600;700;800&family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
         <style>
           * { box-sizing: border-box; margin: 0; padding: 0; }
           body {
@@ -259,7 +261,7 @@ export class ScreenshotEngine {
             display: inline-block;
             padding: 30px;
             background: transparent !important;
-            font-family: 'Plus Jakarta Sans', -apple-system, sans-serif;
+            font-family: 'Be Vietnam Pro', 'Plus Jakarta Sans', -apple-system, sans-serif;
           }
           .card {
             width: 820px;

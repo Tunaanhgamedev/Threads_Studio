@@ -169,13 +169,22 @@ export const AutomationView: React.FC<AutomationViewProps> = ({
       const config = {
         aspectRatio,
         backgroundVideoFolder: bgVideoFolder,
+        cardPosition: {
+          x: 50,
+          y: 40,
+          scale: 92,
+          borderRadius: 18,
+          bgStyle: 'white'
+        },
         subVideoPosition: {
           enabled: subVideoEnabled,
+          layoutMode: 'fullscreen',
           folder: subVideoFolder,
-          scale: 110,
+          scale: 100,
           x: 50,
-          y: 65,
-          borderRadius: 12
+          y: 50,
+          borderRadius: 0,
+          brightness: 80
         },
         backgroundMusic: {
           enabled: true,

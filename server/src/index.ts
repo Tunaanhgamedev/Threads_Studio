@@ -14,6 +14,7 @@ import automationRouter from './routes/automation.js';
 import threadsConnectorRouter from './routes/threadsConnector.js';
 import discoveryRouter from './routes/discovery.js';
 import youtubeRouter from './routes/youtube.js';
+import aiIntelligenceRouter from './routes/aiIntelligence.js';
 import { ThreadsApiService } from './services/threadsApiService.js';
 import { DiscoveryService } from './services/discoveryService.js';
 import { getStorageDir } from './storagePath.js';
@@ -54,6 +55,7 @@ app.use('/api/automation', automationRouter);
 app.use('/api/threads-connector', threadsConnectorRouter);
 app.use('/api/discovery', discoveryRouter);
 app.use('/api/youtube', youtubeRouter);
+app.use('/api/intelligence', aiIntelligenceRouter);
 
 // Health check
 app.get('/api/health', (req, res) => {

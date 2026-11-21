@@ -62,6 +62,8 @@ export interface SubVideoConfig {
   folder: string;
   mute: boolean;
   loop: boolean;
+  brightness?: number; // 40 - 100%
+  blur?: number;
 }
 
 export interface BackgroundMusicConfig {
@@ -453,4 +455,59 @@ export interface YouTubeAnalyticsOverview {
   topVideos: YouTubeTopVideoMetric[];
   lastSyncedAt: string;
   source: 'live_youtube_api' | 'simulated_demo';
+}
+
+// ==================== Phase 12: AI Content Intelligence ====================
+export interface AIPerformanceInsight {
+  metric: string;
+  value: string;
+  evaluation: 'positive' | 'neutral' | 'warning';
+  insightText: string;
+}
+
+export interface AIContentIdea {
+  id: string;
+  topic: string;
+  hookPremise: string;
+  format: 'Shorts (35-45s)' | 'Video dài (3-5m)';
+  targetEmotion: string;
+  predictedRetention: string;
+  whyItWorks: string;
+  status: 'pending' | 'accepted' | 'dismissed';
+}
+
+export interface AITitleVariation {
+  id: string;
+  title: string;
+  angle: 'curiosity' | 'drama' | 'relatable' | 'twist';
+  angleLabel: string;
+  characterCount: number;
+  tags: string[];
+}
+
+export interface AIThumbnailConcept {
+  id: string;
+  conceptTitle: string;
+  visualLayout: string;
+  facialExpression: string;
+  textOverlay: string;
+  textColor: string;
+  contrastElements: string;
+}
+
+export interface AIIntelligenceReport {
+  id: string;
+  accountId: string;
+  channelTitle: string;
+  reportTitle: string;
+  summaryNarrative: string;
+  performanceInsights: AIPerformanceInsight[];
+  contentIdeas: AIContentIdea[];
+  titleSuggestions: AITitleVariation[];
+  thumbnailConcepts: AIThumbnailConcept[];
+  actionPlan: string[];
+  markdownReport: string;
+  aiModelUsed: string;
+  source: 'ollama_ai' | 'smart_heuristic';
+  createdAt: string;
 }

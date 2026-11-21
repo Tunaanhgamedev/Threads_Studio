@@ -10,18 +10,18 @@ export class TemplateService {
       aspectRatio: '9:16',
       cardPosition: {
         x: 50,
-        y: 38,
-        scale: 100,
-        borderRadius: 20,
+        y: 40,
+        scale: 92,
+        borderRadius: 18,
         bgStyle: 'white'
       },
       subVideoPosition: {
         enabled: true,
         layoutMode: 'fullscreen',
         x: 50,
-        y: 65,
+        y: 50,
         scale: 100,
-        borderRadius: 16,
+        borderRadius: 0,
         folder: '',
         mute: true,
         loop: true
@@ -30,7 +30,7 @@ export class TemplateService {
         enabled: true,
         text: 'CRE: THUI NAO 🐾',
         position: 'top_center',
-        opacity: 0.85,
+        opacity: 0.90,
         fontSize: 26
       },
       effects: {
@@ -56,18 +56,18 @@ export class TemplateService {
       aspectRatio: '9:16',
       cardPosition: {
         x: 50,
-        y: 38,
-        scale: 100,
-        borderRadius: 20,
+        y: 40,
+        scale: 92,
+        borderRadius: 18,
         bgStyle: 'white'
       },
       subVideoPosition: {
         enabled: true,
         layoutMode: 'fullscreen',
         x: 50,
-        y: 65,
+        y: 50,
         scale: 100,
-        borderRadius: 16,
+        borderRadius: 0,
         folder: '',
         mute: true,
         loop: true
@@ -76,7 +76,7 @@ export class TemplateService {
         enabled: true,
         text: 'CRE: THUI NAO 🐾',
         position: 'top_center',
-        opacity: 0.85,
+        opacity: 0.90,
         fontSize: 26
       },
       effects: {
@@ -102,18 +102,18 @@ export class TemplateService {
       aspectRatio: '9:16',
       cardPosition: {
         x: 50,
-        y: 38,
-        scale: 100,
-        borderRadius: 20,
+        y: 40,
+        scale: 92,
+        borderRadius: 18,
         bgStyle: 'white'
       },
       subVideoPosition: {
         enabled: true,
         layoutMode: 'fullscreen',
         x: 50,
-        y: 65,
+        y: 50,
         scale: 100,
-        borderRadius: 16,
+        borderRadius: 0,
         folder: '',
         mute: true,
         loop: true
@@ -122,7 +122,7 @@ export class TemplateService {
         enabled: true,
         text: 'CRE: THUI NAO 🐾',
         position: 'top_center',
-        opacity: 0.85,
+        opacity: 0.90,
         fontSize: 26
       },
       effects: {

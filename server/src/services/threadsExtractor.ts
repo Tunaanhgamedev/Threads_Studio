@@ -398,15 +398,45 @@ export class ThreadsExtractor {
         }
       }
 
-      const content = ogDesc || ogTitle || `Một chia sẻ thú vị trên Threads về cuộc sống, sự thay đổi và những quyết định bất ngờ tạo nên sự khác biệt.`;
+      // Helper to detect generic Meta Threads login or profile boilerplates
+      const isBoilerplate = (txt: string) => {
+        const lower = (txt || '').toLowerCase().trim();
+        return !lower || 
+          lower === 'trang cá nhân' || 
+          lower === 'thread' ||
+          lower.includes('trang cá nhân') || 
+          lower.includes('log in') || 
+          lower.includes('đăng nhập') ||
+          lower.includes('see what people are saying') ||
+          lower.startsWith('threads •') ||
+          lower.startsWith('threads -') ||
+          lower.length < 10;
+      };
+
+      let finalContent = '';
+      if (!isBoilerplate(ogDesc)) {
+        finalContent = ogDesc;
+      } else if (!isBoilerplate(ogTitle)) {
+        finalContent = ogTitle;
+      }
+
+      if (!finalContent) {
+        finalContent = `Một câu chuyện hay bắt đầu từ những điều rất nhỏ. Bạn có bao giờ tự hỏi liệu một quyết định bất ngờ trong quá khứ đã thay đổi hoàn toàn tương lai của bạn như thế nào chưa?`;
+      }
+
+      if (authorName.toLowerCase() === 'thread' || authorName.toLowerCase() === 'threads' || authorName.toLowerCase() === 'trang cá nhân') {
+        authorName = username;
+      }
+
+      const displayName = authorName.replace(/[._]/g, ' ').replace(/\b\w/g, l => l.toUpperCase()) || 'Tác giả Threads';
 
       const post: ThreadPost = {
         id: postId,
         url,
         username: username.replace(/[^a-zA-Z0-9_.]/g, '') || 'threads_user',
-        displayName: authorName.replace(/_/g, ' ') || 'Tác giả Threads',
+        displayName: displayName || 'Tác giả Threads',
         avatar: `https://api.dicebear.com/7.x/bottts/svg?seed=${username}`,
-        content,
+        content: finalContent,
         mediaUrls: ogImage ? [ogImage] : ['https://images.unsplash.com/photo-1518770660439-4636190af475?w=800'],
         timestamp: 'Vừa xong',
         likes: Math.floor(Math.random() * 3500) + 450,

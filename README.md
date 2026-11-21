@@ -31,9 +31,17 @@ Short-form platforms (**TikTok Creativity Program Beta, YouTube Shorts Monetizat
 
 ---
 
-## ⚡ Complete Phase Architecture (Phase 1 – Phase 11)
+## ⚡ Complete Phase Architecture (Phase 1 – Phase 12)
 
-### 📊 Phase 11: YouTube Analytics & Content Performance Engine (NEW)
+### 🧠 Phase 12: AI Content Intelligence Engine (NEW)
+* **Two-Tier Intelligence Architecture:** Integrates Tier 1 statistical performance calculations with Tier 2 Ollama local LLMs (and zero-config smart heuristic fallback).
+* **AI Content Ideas Generator:** Automatically analyzes top-performing video patterns and generates 4 viral content premises with 3-second hook lines and predicted retention rates.
+* **Psychological Title Optimizer:** Generates 4 high-converting title angles (*Curiosity Gap, High Stakes Drama, Relatable Confessions, The Twist*) with character counters and SEO tags.
+* **High-Contrast Thumbnail Concepts:** Recommends click-worthy thumbnail designs with facial expression guidelines, text overlay color psychology, and background contrast rules.
+* **Automated Weekly Markdown Reports:** Generates executive strategy summaries ready for 1-click clipboard copying or `.md` file download.
+* **Closed-Loop Creation Action:** 1-Click "Create This Video Now" to route winning AI concepts straight into the Threads Studio production pipeline.
+
+### 📊 Phase 11: YouTube Analytics & Content Performance Engine
 * **YouTube Analytics API v2 Integration:** Connect and query official channel analytics with automatic OAuth token refresh and token caching.
 * **Core Video Metrics Dashboard:** Track Views, Watch Time (hours/minutes), Retention Rate (average view duration & percentage), and Net Subscribers gained/lost.
 * **Interactive Time-Series Growth Charts:** Visual SVG daily trend charts for 7, 28, and 90-day performance windows.

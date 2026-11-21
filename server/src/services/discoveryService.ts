@@ -590,8 +590,8 @@ export class DiscoveryService {
       reviewBeforeExport: true,
       commentCount: 5,
       commentFilterMode: 'most_likes',
-      cardPosition: { x: 50.0, y: 28.0, scale: 105.0, borderRadius: 16, bgStyle: 'white' },
-      subVideoPosition: { enabled: true, x: 50.0, y: 65.0, scale: 110.0, borderRadius: 12, folder: '', mute: true, loop: true },
+      cardPosition: { x: 50.0, y: 40.0, scale: 92.0, borderRadius: 18, bgStyle: 'white' },
+      subVideoPosition: { enabled: true, layoutMode: 'fullscreen', x: 50.0, y: 50.0, scale: 100.0, borderRadius: 0, folder: '', mute: true, loop: true, brightness: 80 },
       backgroundVideoFolder: '',
       backgroundMusic: { folder: '', volume: 20, enabled: true },
       tts: {

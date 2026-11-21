@@ -45,22 +45,24 @@ export const StudioView: React.FC<StudioViewProps> = ({
 }) => {
   const defaultCardPos = {
     x: 50.0,
-    y: 38.0,
-    scale: 100.0,
-    borderRadius: 20,
+    y: 40.0,
+    scale: 92.0,
+    borderRadius: 18,
     bgStyle: 'white' as const
   };
 
   const defaultSubVideoPos = {
     enabled: true,
     x: 50.0,
-    y: 65.0,
-    scale: 110.0,
-    borderRadius: 16,
+    y: 50.0,
+    scale: 100.0,
+    borderRadius: 0,
     folder: '',
     mute: true,
     loop: true,
-    layoutMode: 'fullscreen' as const
+    layoutMode: 'fullscreen' as const,
+    brightness: 80,
+    blur: 0
   };
 
   // Local active form state
@@ -637,23 +639,26 @@ export const StudioView: React.FC<StudioViewProps> = ({
     if (positionTab === 'card') {
       setCardPos({
         x: 50.0,
-        y: 38.0,
-        scale: 100.0,
-        borderRadius: 20,
+        y: 40.0,
+        scale: 92.0,
+        borderRadius: 18,
         bgStyle: 'white'
       });
     } else {
       setSubVideoPos({
         enabled: true,
         x: 50.0,
-        y: 65.0,
-        scale: 110.0,
-        borderRadius: 16,
+        y: 50.0,
+        scale: 100.0,
+        borderRadius: 0,
         folder: '',
         mute: true,
         loop: true,
-        layoutMode: 'fullscreen'
+        layoutMode: 'fullscreen',
+        brightness: 80,
+        blur: 0
       });
+      setSubVideoEnabled(true);
     }
   };
 
@@ -1363,7 +1368,7 @@ export const StudioView: React.FC<StudioViewProps> = ({
               }`}
             >
               {/* Background Video Preview (Gameplay / Minecraft / Satisfying) */}
-              {subVideoEnabled && (
+              {subVideoEnabled ? (
                 (subVideoFolder || bgVideoFolder) ? (
                   <video
                     key={subVideoFolder || bgVideoFolder}
@@ -1375,7 +1380,7 @@ export const StudioView: React.FC<StudioViewProps> = ({
                     onError={() => setSubVideoLoadError(true)}
                     className="absolute inset-0 w-full h-full object-cover pointer-events-none z-0"
                     style={{
-                      filter: `${effects.blurBackground ? 'blur(6px)' : 'none'} ${effects.vignette ? 'brightness(0.7)' : 'brightness(0.85)'}`
+                      filter: `${effects.blurBackground || (subVideoPos?.blur && subVideoPos.blur > 0) ? 'blur(6px)' : 'none'} brightness(${((subVideoPos?.brightness ?? 80) / 100)})`
                     }}
                   />
                 ) : (
@@ -1385,12 +1390,22 @@ export const StudioView: React.FC<StudioViewProps> = ({
                     loop
                     muted
                     playsInline
-                    className="absolute inset-0 w-full h-full object-cover pointer-events-none z-0 brightness-75"
+                    className="absolute inset-0 w-full h-full object-cover pointer-events-none z-0"
+                    style={{
+                      filter: `${effects.blurBackground || (subVideoPos?.blur && subVideoPos.blur > 0) ? 'blur(6px)' : 'none'} brightness(${((subVideoPos?.brightness ?? 80) / 100)})`
+                    }}
                   />
                 )
+              ) : (
+                <div className="absolute inset-0 bg-gradient-to-b from-[#0a1224] via-[#0d1830] to-[#070d19] z-0 flex items-center justify-center">
+                  <div className="absolute inset-0 bg-grid-pattern opacity-30 pointer-events-none" />
+                  <div className="text-center p-4 z-10 opacity-30 pointer-events-none select-none">
+                    <span className="text-xs uppercase tracking-widest font-bold text-slate-400">Nền tối sang trọng</span>
+                  </div>
+                </div>
               )}
               {/* Subtle ambient contrast overlay */}
-              <div className="absolute inset-0 bg-gradient-to-b from-black/25 via-transparent to-black/45 pointer-events-none z-[1]" />
+              <div className="absolute inset-0 bg-gradient-to-b from-black/35 via-transparent to-black/55 pointer-events-none z-[1]" />
 
               {/* 1. Dynamic Threads Card (Post or Comment) */}
               <div
@@ -1406,12 +1421,12 @@ export const StudioView: React.FC<StudioViewProps> = ({
                       ? '#ffffff' 
                       : cardPos.bgStyle === 'dark' 
                       ? '#101728' 
-                      : 'rgba(15, 23, 42, 0.75)',
+                      : 'rgba(15, 23, 42, 0.78)',
                   color: cardPos.bgStyle === 'white' ? '#0f172a' : '#f8fafc',
-                  backdropFilter: cardPos.bgStyle === 'transparent' ? 'blur(12px)' : 'none',
-                  border: cardPos.bgStyle === 'white' ? '1px solid rgba(226, 232, 240, 0.9)' : '1px solid #1e3356'
+                  backdropFilter: cardPos.bgStyle === 'transparent' ? 'blur(16px)' : 'none',
+                  border: cardPos.bgStyle === 'white' ? '1px solid rgba(226, 232, 240, 0.95)' : '1px solid #1e3356'
                 }}
-                className={`w-[88%] p-4 shadow-[0_25px_60px_-15px_rgba(0,0,0,0.55)] transition-all duration-150 select-none cursor-pointer z-20 ${
+                className={`w-[88%] p-4 sm:p-5 shadow-[0_20px_50px_-10px_rgba(0,0,0,0.65),0_0_0_1px_rgba(255,255,255,0.12)] transition-all duration-150 select-none cursor-pointer z-20 font-['Be_Vietnam_Pro',sans-serif] ${
                   positionTab === 'card' ? 'ring-2 ring-blue-500 ring-offset-2 ring-offset-slate-950' : ''
                 }`}
               >
@@ -1507,43 +1522,13 @@ export const StudioView: React.FC<StudioViewProps> = ({
                 </div>
               </div>
 
-              {/* 2. Secondary Video (PIP Box) ONLY when layoutMode is 'pip' */}
-              {subVideoEnabled && subVideoPos.layoutMode === 'pip' && (
-                <div
-                  onClick={() => setPositionTab('subVideo')}
-                  style={{
-                    position: 'absolute',
-                    left: `${subVideoPos.x}%`,
-                    top: `${subVideoPos.y}%`,
-                    transform: `translate(-50%, -50%) scale(${subVideoPos.scale / 100})`,
-                    borderRadius: `${subVideoPos.borderRadius}px`
-                  }}
-                  className={`w-[78%] h-36 bg-slate-900 shadow-2xl overflow-hidden flex flex-col items-center justify-center z-10 group cursor-pointer transition-all duration-150 ${
-                    positionTab === 'subVideo' ? 'ring-2 ring-cyan-400 ring-offset-2 ring-offset-slate-950' : 'border border-cyan-500/40'
-                  }`}
-                >
-                  <video
-                    key={subVideoFolder || 'default-pip'}
-                    src={subVideoFolder ? `/api/media/stream-local?folder=${encodeURIComponent(subVideoFolder)}&type=video` : '/api/media/stream-local?folder=storage%2Fsample_media%2Fvideos&type=video'}
-                    autoPlay
-                    loop
-                    muted
-                    playsInline
-                    className="w-full h-full object-cover pointer-events-none"
-                  />
-                  <span className="absolute top-1.5 right-1.5 text-[9px] bg-black/75 text-cyan-300 px-1.5 py-0.5 rounded font-mono border border-cyan-500/30">
-                    Video phụ ({subVideoPos.scale}%)
-                  </span>
-                </div>
-              )}
-
-              {/* 3. Live Watermark Preview */}
+              {/* 2. Live Watermark Preview */}
               {watermark.enabled && watermark.text && (
                 <div 
                   style={{ opacity: watermark.opacity }}
-                  className={`absolute z-30 font-bold pointer-events-none drop-shadow-md font-mono ${
+                  className={`absolute z-30 font-bold pointer-events-none drop-shadow-md font-['Montserrat',sans-serif] ${
                     watermark.position === 'top_center'
-                      ? 'top-3.5 left-1/2 -translate-x-1/2 px-3.5 py-1 bg-black/65 rounded-full border border-yellow-400/40 text-yellow-300 font-black shadow-xl tracking-wide flex items-center gap-1.5 text-xs'
+                      ? 'top-4 left-1/2 -translate-x-1/2 px-3.5 py-1 bg-black/75 backdrop-blur-md rounded-full border border-yellow-400/50 text-yellow-300 font-black shadow-xl tracking-wide flex items-center gap-1.5 text-xs'
                       : watermark.position === 'top_left'
                       ? 'top-3 left-3 text-white text-[11px]'
                       : watermark.position === 'bottom_left'
@@ -1557,7 +1542,7 @@ export const StudioView: React.FC<StudioViewProps> = ({
                 </div>
               )}
 
-              {/* 4. Live Subtitle Preview */}
+              {/* 3. Live Subtitle Preview (Safely positioned with breathing room) */}
               {subtitleStyle.enabled && (
                 <div 
                   className={`absolute inset-x-3 z-30 pointer-events-none flex justify-center text-center ${
@@ -1567,7 +1552,7 @@ export const StudioView: React.FC<StudioViewProps> = ({
                   }`}
                 >
                   <span 
-                    className="px-3 py-1 font-black text-sm uppercase tracking-wider select-none"
+                    className="px-3 py-1 font-black text-xs sm:text-sm uppercase tracking-wider select-none font-['Montserrat','Be_Vietnam_Pro',sans-serif]"
                     style={{
                       color: '#FFE600',
                       textShadow: '0 3px 6px rgba(0,0,0,0.95), -2px -2px 0 #000, 2px -2px 0 #000, -2px 2px 0 #000, 2px 2px 0 #000, 0 2px 0 #000, 0 -2px 0 #000, 2px 0 0 #000, -2px 0 0 #000'
@@ -1580,7 +1565,7 @@ export const StudioView: React.FC<StudioViewProps> = ({
                 </div>
               )}
 
-              {/* 5. Live Vignette Effect Overlay */}
+              {/* 4. Live Vignette Effect Overlay */}
               {effects.vignette && (
                 <div className="absolute inset-0 pointer-events-none z-10 bg-[radial-gradient(ellipse_at_center,_transparent_50%,_rgba(0,0,0,0.6)_100%)]" />
               )}
@@ -1593,7 +1578,7 @@ export const StudioView: React.FC<StudioViewProps> = ({
             {/* Vị trí & kích thước Card */}
             <div className="bg-[#0f1b30] rounded-2xl border border-[#1b3154] p-4 shadow-sm">
               <div className="flex items-center justify-between mb-3">
-                <span className="text-xs font-bold text-slate-100">Vị trí & kích thước</span>
+                <span className="text-xs font-bold text-slate-100">Bố cục & Vị trí</span>
                 <button
                   onClick={handleResetPosition}
                   className="text-[11px] text-blue-400 hover:text-blue-300 flex items-center gap-1 transition"
@@ -1603,7 +1588,7 @@ export const StudioView: React.FC<StudioViewProps> = ({
                 </button>
               </div>
 
-              {/* Tabs: [Thẻ bình luận] & [Video phụ] */}
+              {/* Tabs: [Thẻ bài viết & ảnh] & [Video phụ & Nền] */}
               <div className="grid grid-cols-2 gap-1 bg-[#152542] p-1 rounded-xl border border-[#213b63] mb-3">
                 <button
                   onClick={() => setPositionTab('card')}
@@ -1613,23 +1598,52 @@ export const StudioView: React.FC<StudioViewProps> = ({
                       : 'text-slate-400 hover:text-slate-200'
                   }`}
                 >
-                  Thẻ bình luận
+                  Thẻ bài viết & ảnh
                 </button>
                 <button
                   onClick={() => setPositionTab('subVideo')}
-                  className={`py-1.5 text-xs rounded-lg font-semibold transition ${
+                  className={`py-1.5 text-xs rounded-lg font-semibold transition flex items-center justify-center gap-1.5 ${
                     positionTab === 'subVideo'
                       ? 'bg-blue-600 text-white shadow'
                       : 'text-slate-400 hover:text-slate-200'
                   }`}
                 >
-                  Video phụ
+                  <span>Video phụ & Nền</span>
+                  {subVideoEnabled && <span className="w-1.5 h-1.5 rounded-full bg-emerald-400"></span>}
                 </button>
               </div>
 
               {/* Sliders for active tab */}
               {positionTab === 'card' ? (
                 <div className="space-y-3">
+                  {/* Quick Layout Presets */}
+                  <div className="grid grid-cols-3 gap-1.5">
+                    <button
+                      type="button"
+                      onClick={() => setCardPos({ ...cardPos, x: 50, y: 40, scale: 92, borderRadius: 18 })}
+                      className="py-1 px-1.5 rounded-lg bg-[#152542] hover:bg-blue-600/30 border border-[#213b63] text-[10px] text-blue-300 font-semibold transition text-center"
+                      title="Căn giữa chuẩn Shorts với khoảng nghỉ thoáng mắt"
+                    >
+                      🎯 Căn giữa chuẩn
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setCardPos({ ...cardPos, x: 50, y: 32, scale: 88, borderRadius: 18 })}
+                      className="py-1 px-1.5 rounded-lg bg-[#152542] hover:bg-blue-600/30 border border-[#213b63] text-[10px] text-slate-300 font-medium transition text-center"
+                      title="Đặt ở nửa trên để lộ nhiều video gameplay bên dưới"
+                    >
+                      📱 Nửa trên
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setCardPos({ ...cardPos, x: 50, y: 42, scale: 100, borderRadius: 20 })}
+                      className="py-1 px-1.5 rounded-lg bg-[#152542] hover:bg-blue-600/30 border border-[#213b63] text-[10px] text-slate-300 font-medium transition text-center"
+                      title="Phóng to thẻ vừa vặn màn hình"
+                    >
+                      🔲 Rộng toàn màn
+                    </button>
+                  </div>
+
                   <div>
                     <div className="flex justify-between text-[11px] text-slate-400 mb-1">
                       <span>Tọa độ X</span>
@@ -1649,14 +1663,14 @@ export const StudioView: React.FC<StudioViewProps> = ({
                   <div>
                     <div className="flex justify-between text-[11px] text-slate-400 mb-1">
                       <span>Tọa độ Y</span>
-                      <span className="font-mono text-slate-200">{(cardPos?.y ?? 28).toFixed(1)} %</span>
+                      <span className="font-mono text-slate-200">{(cardPos?.y ?? 40).toFixed(1)} %</span>
                     </div>
                     <input
                       type="range"
                       min="10"
                       max="90"
                       step="0.5"
-                      value={cardPos?.y ?? 28}
+                      value={cardPos?.y ?? 40}
                       onChange={(e) => setCardPos({ ...cardPos, y: parseFloat(e.target.value) })}
                       className="w-full cursor-pointer"
                     />
@@ -1665,14 +1679,14 @@ export const StudioView: React.FC<StudioViewProps> = ({
                   <div>
                     <div className="flex justify-between text-[11px] text-slate-400 mb-1">
                       <span>Cỡ (Phóng to)</span>
-                      <span className="font-mono text-slate-200">{(cardPos?.scale ?? 105).toFixed(1)} %</span>
+                      <span className="font-mono text-slate-200">{(cardPos?.scale ?? 92).toFixed(1)} %</span>
                     </div>
                     <input
                       type="range"
                       min="60"
-                      max="150"
+                      max="140"
                       step="1"
-                      value={cardPos?.scale ?? 105}
+                      value={cardPos?.scale ?? 92}
                       onChange={(e) => setCardPos({ ...cardPos, scale: parseFloat(e.target.value) })}
                       className="w-full cursor-pointer"
                     />
@@ -1681,13 +1695,13 @@ export const StudioView: React.FC<StudioViewProps> = ({
                   <div>
                     <div className="flex justify-between text-[11px] text-slate-400 mb-1">
                       <span>Bo góc</span>
-                      <span className="font-mono text-slate-200">{cardPos?.borderRadius ?? 16} px</span>
+                      <span className="font-mono text-slate-200">{cardPos?.borderRadius ?? 18} px</span>
                     </div>
                     <input
                       type="range"
                       min="0"
                       max="32"
-                      value={cardPos?.borderRadius ?? 16}
+                      value={cardPos?.borderRadius ?? 18}
                       onChange={(e) => setCardPos({ ...cardPos, borderRadius: parseInt(e.target.value) })}
                       className="w-full cursor-pointer"
                     />
@@ -1700,7 +1714,7 @@ export const StudioView: React.FC<StudioViewProps> = ({
                       onChange={(e: any) => setCardPos({ ...cardPos, bgStyle: e.target.value })}
                       className="w-full bg-[#152542] border border-[#213b63] rounded-xl px-3 py-1.5 text-xs text-slate-200 focus:outline-none cursor-pointer"
                     >
-                      <option value="white">Trắng (Mặc định)</option>
+                      <option value="white">Trắng (Mặc định - Chuẩn Threads)</option>
                       <option value="dark">Đen (Chế độ tối)</option>
                       <option value="transparent">Trong suốt (Kính mờ Glassmorphism)</option>
                     </select>
@@ -1708,89 +1722,126 @@ export const StudioView: React.FC<StudioViewProps> = ({
                 </div>
               ) : (
                 <div className="space-y-3">
-                  <div>
-                    <label className="block text-[11px] text-slate-400 mb-1">Chế độ hiển thị Video phụ</label>
-                    <select
-                      value={subVideoPos?.layoutMode || 'fullscreen'}
-                      onChange={(e: any) => setSubVideoPos({ ...subVideoPos, layoutMode: e.target.value })}
-                      className="w-full bg-[#152542] border border-[#213b63] rounded-xl px-3 py-1.5 text-xs text-slate-200 focus:outline-none cursor-pointer"
+                  {/* Toggle On / Off Video phụ */}
+                  <div className="flex items-center justify-between p-2.5 bg-[#152542] rounded-xl border border-[#213b63]">
+                    <div>
+                      <span className="text-xs font-bold text-slate-100 block">Ghép Video phụ</span>
+                      <span className="text-[10px] text-slate-400">
+                        {subVideoEnabled ? 'Đang chạy nền dọc 9:16' : 'Đã tắt (Chỉ dùng ảnh & nền tối)'}
+                      </span>
+                    </div>
+                    <button
+                      type="button"
+                      onClick={() => setSubVideoEnabled(!subVideoEnabled)}
+                      className={`px-3 py-1.5 rounded-lg text-xs font-bold transition flex items-center gap-1.5 cursor-pointer ${
+                        subVideoEnabled
+                          ? 'bg-emerald-600 hover:bg-emerald-500 text-white shadow-sm'
+                          : 'bg-slate-700 hover:bg-slate-600 text-slate-300'
+                      }`}
                     >
-                      <option value="fullscreen">Toàn màn hình dọc (100% nền) - [Mặc định Shorts/TikTok]</option>
-                      <option value="pip">Khung nhỏ góc dưới (PIP Box)</option>
-                    </select>
+                      {subVideoEnabled ? '✓ Đang bật' : '+ Bật video'}
+                    </button>
                   </div>
 
-                  {subVideoPos?.layoutMode === 'pip' ? (
+                  {subVideoEnabled ? (
                     <>
-                      <div>
-                        <div className="flex justify-between text-[11px] text-slate-400 mb-1">
-                          <span>Tọa độ X</span>
-                          <span className="font-mono text-slate-200">{(subVideoPos?.x ?? 50).toFixed(1)} %</span>
+                      {/* Video source info & Actions */}
+                      <div className="p-2.5 bg-[#111e36] rounded-xl border border-[#1d355a] space-y-2">
+                        <div className="text-[11px] text-slate-300 flex items-center justify-between">
+                          <span className="font-semibold text-cyan-300 flex items-center gap-1">
+                            <span className="w-2 h-2 rounded-full bg-cyan-400 animate-pulse"></span>
+                            Nền video dọc (100%)
+                          </span>
+                          {subVideoFolder && (
+                            <button
+                              type="button"
+                              onClick={() => {
+                                setSubVideoFolder('');
+                                setSubVideoEnabled(false);
+                              }}
+                              className="text-[10px] text-red-400 hover:text-red-300 transition flex items-center gap-0.5 cursor-pointer"
+                              title="Bỏ video phụ"
+                            >
+                              ✕ Bỏ video
+                            </button>
+                          )}
                         </div>
-                        <input
-                          type="range"
-                          min="10"
-                          max="90"
-                          step="0.5"
-                          value={subVideoPos?.x ?? 50}
-                          onChange={(e) => setSubVideoPos({ ...subVideoPos, x: parseFloat(e.target.value) })}
-                          className="w-full cursor-pointer"
-                        />
+
+                        <p className="text-[10px] text-slate-400 truncate font-mono bg-[#0c1628] p-1.5 rounded-lg border border-[#192c4b]">
+                          {subVideoFolder ? (subVideoFolder.split(/[/\\]/).pop() || subVideoFolder) : 'Mẫu gameplay Minecraft/B-roll có sẵn'}
+                        </p>
+
+                        <div className="grid grid-cols-2 gap-1.5 pt-1">
+                          <button
+                            type="button"
+                            onClick={handleBrowseSubVideoFile}
+                            className="py-1.5 px-2 bg-blue-600/30 hover:bg-blue-600/50 border border-blue-500/40 rounded-lg text-[10px] text-blue-200 font-semibold transition text-center cursor-pointer"
+                          >
+                            + Chọn file video
+                          </button>
+                          <button
+                            type="button"
+                            onClick={handleBrowseSubVideo}
+                            className="py-1.5 px-2 bg-[#172a4c] hover:bg-[#1d355f] border border-[#274779] rounded-lg text-[10px] text-slate-200 font-semibold transition text-center cursor-pointer"
+                          >
+                            📁 Chọn thư mục
+                          </button>
+                        </div>
                       </div>
 
+                      {/* Brightness / Dimming slider */}
                       <div>
                         <div className="flex justify-between text-[11px] text-slate-400 mb-1">
-                          <span>Tọa độ Y</span>
-                          <span className="font-mono text-slate-200">{(subVideoPos?.y ?? 65).toFixed(1)} %</span>
+                          <span>Độ sáng nền (Tương phản)</span>
+                          <span className="font-mono text-cyan-300">{subVideoPos?.brightness ?? 80} %</span>
                         </div>
                         <input
                           type="range"
-                          min="10"
-                          max="90"
-                          step="0.5"
-                          value={subVideoPos?.y ?? 65}
-                          onChange={(e) => setSubVideoPos({ ...subVideoPos, y: parseFloat(e.target.value) })}
+                          min="40"
+                          max="100"
+                          step="5"
+                          value={subVideoPos?.brightness ?? 80}
+                          onChange={(e) => setSubVideoPos({ ...subVideoPos, brightness: parseInt(e.target.value) })}
                           className="w-full cursor-pointer"
                         />
+                        <span className="text-[9px] text-slate-500">Giảm độ sáng nền giúp chữ và ảnh nổi bật hơn</span>
                       </div>
 
-                      <div>
-                        <div className="flex justify-between text-[11px] text-slate-400 mb-1">
-                          <span>Cỡ (Phóng to)</span>
-                          <span className="font-mono text-slate-200">{(subVideoPos?.scale ?? 110).toFixed(1)} %</span>
-                        </div>
+                      {/* Blur toggle */}
+                      <label className="flex items-center justify-between p-2 bg-[#111e36] rounded-xl border border-[#1d355a] cursor-pointer">
+                        <span className="text-[11px] text-slate-300">Làm mờ nhẹ nền video (Blur)</span>
                         <input
-                          type="range"
-                          min="50"
-                          max="160"
-                          step="1"
-                          value={subVideoPos?.scale ?? 110}
-                          onChange={(e) => setSubVideoPos({ ...subVideoPos, scale: parseFloat(e.target.value) })}
-                          className="w-full cursor-pointer"
+                          type="checkbox"
+                          checked={effects.blurBackground || Boolean(subVideoPos?.blur && subVideoPos.blur > 0)}
+                          onChange={(e) => {
+                            setEffects({ ...effects, blurBackground: e.target.checked });
+                            setSubVideoPos({ ...subVideoPos, blur: e.target.checked ? 6 : 0 });
+                          }}
+                          className="w-3.5 h-3.5 rounded bg-[#172744] border-[#253f68] text-blue-600 focus:ring-0 cursor-pointer"
                         />
-                      </div>
+                      </label>
 
-                      <div>
-                        <div className="flex justify-between text-[11px] text-slate-400 mb-1">
-                          <span>Bo góc</span>
-                          <span className="font-mono text-slate-200">{subVideoPos?.borderRadius ?? 12} px</span>
-                        </div>
-                        <input
-                          type="range"
-                          min="0"
-                          max="32"
-                          value={subVideoPos?.borderRadius ?? 12}
-                          onChange={(e) => setSubVideoPos({ ...subVideoPos, borderRadius: parseInt(e.target.value) })}
-                          className="w-full cursor-pointer"
-                        />
+                      {/* Info banner */}
+                      <div className="p-2.5 bg-cyan-950/40 border border-cyan-500/30 rounded-xl space-y-1 text-xs">
+                        <p className="font-semibold text-cyan-300 text-[11px]">✓ Chuẩn TikTok / Shorts</p>
+                        <p className="text-[10px] text-slate-400 leading-relaxed">
+                          Video phụ luôn chạy dọc chiếm 100% màn hình phía sau. Thẻ bài viết ("ảnh") và phụ đề nổi bật phía trước có khoảng nghỉ cân đối, dễ nhìn.
+                        </p>
                       </div>
                     </>
                   ) : (
-                    <div className="p-3 bg-cyan-950/40 border border-cyan-500/30 rounded-xl space-y-1.5 text-xs">
-                      <p className="font-semibold text-cyan-300">✓ Toàn màn hình dọc (100% nền)</p>
+                    <div className="p-3 bg-slate-900/60 border border-slate-800 rounded-xl space-y-2 text-center">
+                      <p className="text-xs text-slate-300 font-semibold">Đã tắt Video phụ</p>
                       <p className="text-[11px] text-slate-400 leading-relaxed">
-                        Video phụ (Gameplay Minecraft / B-roll) luôn chạy dọc chiếm 100% toàn màn hình phía sau. Thẻ bài viết và phụ đề nổi bật phía trước.
+                        Video sẽ xuất trên nền màu tối sang trọng với hiệu ứng lưới nhẹ, tập trung 100% vào thẻ bài viết.
                       </p>
+                      <button
+                        type="button"
+                        onClick={() => setSubVideoEnabled(true)}
+                        className="py-1.5 px-3 bg-blue-600 hover:bg-blue-500 text-white rounded-lg text-xs font-bold transition shadow cursor-pointer"
+                      >
+                        + Bật Video phụ làm nền
+                      </button>
                     </div>
                   )}
                 </div>

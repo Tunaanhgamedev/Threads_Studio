@@ -390,9 +390,9 @@ export class VideoService {
     const postScreenshot = screenshots.find(s => s.type === 'post') || screenshots[0];
     const commentScreenshots = screenshots.filter(s => s.type === 'comment');
 
-    const cardScale = ((project.config.cardPosition?.scale ?? 105) / 100);
+    const cardScale = ((project.config.cardPosition?.scale ?? 92) / 100);
     const cardTargetWidth = Math.round((width * 0.88) * cardScale);
-    const cardPosYPercent = ((project.config.cardPosition?.y ?? 38) / 100).toFixed(2);
+    const cardPosYPercent = ((project.config.cardPosition?.y ?? 40) / 100).toFixed(2);
     const cardXExpr = `(W-w)/2`;
     const cardYExpr = `H*${cardPosYPercent}-(h/2)`;
 
@@ -462,14 +462,15 @@ export class VideoService {
       inputs.push('-stream_loop', '-1', '-i', bgVideoPath);
       const bgInputIdx = nextInputIndex++;
       let bgFilter = `[${bgInputIdx}:v]scale=${width}:${height}:force_original_aspect_ratio=increase,crop=${width}:${height},fps=30`;
-      if (project.config.effects?.blurBackground) {
+      if (project.config.effects?.blurBackground || (project.config.subVideoPosition?.blur && project.config.subVideoPosition.blur > 0)) {
         bgFilter += `,boxblur=10:5`;
       }
       if (project.config.effects?.vignette) {
         bgFilter += `,vignette=PI/4`;
       }
-      // Subtle dimming overlay so white card and subtitles stand out sharply
-      bgFilter += `,colorlevels=rimax=0.85:gimax=0.85:bimax=0.85[bg]`;
+      // Contrast dimming so white card and subtitles stand out sharply
+      const dimLevel = Math.max(0.3, Math.min(1.0, ((project.config.subVideoPosition?.brightness ?? 80) / 100))).toFixed(2);
+      bgFilter += `,colorlevels=rimax=${dimLevel}:gimax=${dimLevel}:bimax=${dimLevel}[bg]`;
       filterParts.push(bgFilter);
     } else {
       // Fallback: dark clean luxury canvas with subtle grid
