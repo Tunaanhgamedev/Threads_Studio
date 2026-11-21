@@ -18,9 +18,9 @@ const defaultFullConfig: VideoConfig = {
   commentFilterMode: 'most_likes',
   cardPosition: {
     x: 50.0,
-    y: 38.0,
-    scale: 100.0,
-    borderRadius: 20,
+    y: 35.0,
+    scale: 90.0,
+    borderRadius: 18,
     bgStyle: 'white'
   },
   subVideoPosition: {

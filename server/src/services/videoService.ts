@@ -488,9 +488,9 @@ export class VideoService {
     }
     let currentV = '[bg]';
 
-    // 2. Optional secondary PIP box overlay ONLY if layoutMode is explicitly 'pip'
+    // 2. Optional secondary PIP box overlay ONLY if layoutMode is explicitly 'pip' and not 9:16 portrait
     const layoutMode = project.config.subVideoPosition?.layoutMode || 'fullscreen';
-    if (layoutMode === 'pip' && isVideoEnabled) {
+    if (layoutMode === 'pip' && isVideoEnabled && !isPortrait) {
       let subVideoPath: string | null = null;
       if (project.config.subVideoPosition?.folder) {
         subVideoPath = findVideoInFolder(project.config.subVideoPosition.folder);

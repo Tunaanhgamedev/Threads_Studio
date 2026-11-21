@@ -339,6 +339,31 @@ db.exec(`
     created_at TEXT NOT NULL,
     FOREIGN KEY(account_id) REFERENCES youtube_accounts(id) ON DELETE CASCADE
   );
+
+  -- Phase 13: Content Experiment & A/B Testing
+  CREATE TABLE IF NOT EXISTS content_experiments (
+    id TEXT PRIMARY KEY,
+    title TEXT NOT NULL,
+    video_id TEXT NOT NULL,
+    video_title TEXT NOT NULL,
+    video_thumbnail_url TEXT,
+    account_id TEXT,
+    channel_title TEXT,
+    experiment_type TEXT NOT NULL DEFAULT 'title',
+    test_mode TEXT NOT NULL DEFAULT 'sequential',
+    status TEXT NOT NULL DEFAULT 'draft',
+    current_variant_id TEXT,
+    winner_variant_id TEXT,
+    winner_declared_at TEXT,
+    hypothesis TEXT,
+    conclusion TEXT,
+    variants TEXT NOT NULL,
+    target_metric TEXT DEFAULT 'watch_time_per_day',
+    uplift_percent REAL DEFAULT 0,
+    created_at TEXT NOT NULL,
+    updated_at TEXT NOT NULL,
+    FOREIGN KEY(account_id) REFERENCES youtube_accounts(id) ON DELETE SET NULL
+  );
 `);
 
 // Migrations for Phase 10 - YouTube Publishing

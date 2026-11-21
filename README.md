@@ -31,9 +31,17 @@ Short-form platforms (**TikTok Creativity Program Beta, YouTube Shorts Monetizat
 
 ---
 
-## ⚡ Complete Phase Architecture (Phase 1 – Phase 12)
+## ⚡ Complete Phase Architecture (Phase 1 – Phase 13)
 
-### 🧠 Phase 12: AI Content Intelligence Engine (NEW)
+### 🧪 Phase 13: Content Experiment & A/B Testing Engine (NEW)
+* **Title, Thumbnail & Combined A/B Testing:** Design and execute structured multi-variant tests across 2 to 3 variants (Control A, Challenger B, Optional C).
+* **Dual Testing Execution Modes:**
+  - **Sequential Comparison Mode:** Phased sequential evaluation in YouTube Studio with automated daily metric normalization (`views/day`, `watchTime/day`, `retention %`) to completely eliminate duration bias.
+  - **YouTube Native Test Mode:** Strategy repository and analytics logger designed for YouTube Studio's native "Test & Compare" feature (watch-time share % and CTR tracking).
+* **Automated Metric Uplift & Winner Declaration:** Instant percentage lift calculations against baseline control, winner badges, key takeaway learning logs, and persistent experiment history.
+* **Enhanced Video Layout Aesthetics (Shorts / TikTok Standard):** Full-screen vertical background video (1080x1920 9:16) running as the bottom layer, centered Threads card with generous breathing room, attachments support (images/memes), and punchy bottom subtitles.
+
+### 🧠 Phase 12: AI Content Intelligence Engine
 * **Two-Tier Intelligence Architecture:** Integrates Tier 1 statistical performance calculations with Tier 2 Ollama local LLMs (and zero-config smart heuristic fallback).
 * **AI Content Ideas Generator:** Automatically analyzes top-performing video patterns and generates 4 viral content premises with 3-second hook lines and predicted retention rates.
 * **Psychological Title Optimizer:** Generates 4 high-converting title angles (*Curiosity Gap, High Stakes Drama, Relatable Confessions, The Twist*) with character counters and SEO tags.
@@ -153,6 +161,10 @@ Threads_Studio/
 │   │   │   ├── AutomationView.tsx     # Phase 7 batch automation dashboard
 │   │   │   ├── ThreadsConnectorView.tsx # Phase 8 Threads API & sync manager
 │   │   │   ├── DiscoveryView.tsx      # Phase 9 Public creator discovery & viral feed
+│   │   │   ├── YouTubePublishingView.tsx # Phase 10 YouTube upload & metadata manager
+│   │   │   ├── YouTubeAnalyticsView.tsx  # Phase 11 YouTube Analytics & retention
+│   │   │   ├── AIIntelligenceView.tsx    # Phase 12 AI ideas & title optimizer
+│   │   │   ├── ContentExperimentView.tsx # Phase 13 A/B testing & sequential evaluation
 │   │   │   ├── SourcesView.tsx        # Threads URL ingestion
 │   │   │   ├── CommentsView.tsx       # Comment selection & filtering
 │   │   │   ├── ScreenshotsView.tsx    # Card render inspector

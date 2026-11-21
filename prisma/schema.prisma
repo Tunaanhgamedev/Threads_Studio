@@ -105,6 +105,7 @@ model YouTubeAccount {
   publishes       YouTubePublish[]
   reports         YouTubeAnalyticsReport[]
   aiReports       AIContentReport[]
+  experiments     ContentExperiment[]
 }
 
 model YouTubePublish {
@@ -184,4 +185,28 @@ model AIContentReport {
   source              String         @default("smart_heuristic")
   status              String         @default("active")
   createdAt           DateTime       @default(now())
+}
+
+model ContentExperiment {
+  id                String          @id
+  title             String
+  videoId           String
+  videoTitle        String
+  videoThumbnailUrl String?
+  accountId         String?
+  account           YouTubeAccount? @relation(fields: [accountId], references: [id], onDelete: SetNull)
+  channelTitle      String?
+  experimentType    String          @default("title") // title, thumbnail, title_and_thumbnail
+  testMode          String          @default("sequential") // sequential, youtube_native
+  status            String          @default("draft") // draft, running, completed, cancelled
+  currentVariantId  String?
+  winnerVariantId   String?
+  winnerDeclaredAt  DateTime?
+  hypothesis        String?
+  conclusion        String?
+  variants          String          // JSON array of ExperimentVariant
+  targetMetric      String          @default("watch_time_per_day")
+  upliftPercent     Float           @default(0)
+  createdAt         DateTime        @default(now())
+  updatedAt         DateTime        @updatedAt
 }

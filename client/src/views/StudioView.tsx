@@ -45,8 +45,8 @@ export const StudioView: React.FC<StudioViewProps> = ({
 }) => {
   const defaultCardPos = {
     x: 50.0,
-    y: 40.0,
-    scale: 92.0,
+    y: 35.0,
+    scale: 90.0,
     borderRadius: 18,
     bgStyle: 'white' as const
   };
@@ -134,10 +134,10 @@ export const StudioView: React.FC<StudioViewProps> = ({
   });
   const [subtitleStyle, setSubtitleStyle] = useState<SubtitleStyleConfig>(project.config.subtitleStyle || {
     enabled: true,
-    fontSize: 40,
-    primaryColor: '&H00FFFFFF',
+    fontSize: 44,
+    primaryColor: '#FFE600',
     outlineColor: '&H00000000',
-    position: 'middle'
+    position: 'bottom'
   });
   const [audios, setAudios] = useState<AudioItem[]>([]);
 
@@ -534,6 +534,37 @@ export const StudioView: React.FC<StudioViewProps> = ({
     }
   };
 
+  const handleLoadSampleViralPost = async () => {
+    const sampleTitle = 'Việt Storyteller';
+    const sampleUser = 'viet_story';
+    const sampleStory = 'Một câu chuyện hay bắt đầu từ những điều rất nhỏ. Bạn có bao giờ tự hỏi liệu một quyết định bất ngờ trong quá khứ đã thay đổi hoàn toàn tương lai của bạn như thế nào chưa?';
+    setAuthorDisplayName(sampleTitle);
+    setAuthorUsername(sampleUser);
+    setPostContent(sampleStory);
+    const updatedProject: Project = {
+      ...project,
+      post: {
+        ...project.post,
+        displayName: sampleTitle,
+        username: sampleUser,
+        content: sampleStory
+      }
+    };
+    onUpdateProject(updatedProject);
+    try {
+      await api.updateProject(project.id, {
+        post: {
+          displayName: sampleTitle,
+          username: sampleUser,
+          content: sampleStory
+        }
+      });
+      setLogs(prev => [...prev, `[${new Date().toLocaleTimeString()}] Đã nạp thành công câu chuyện viral mẫu!`]);
+    } catch (err: any) {
+      console.warn('Failed to load sample post:', err);
+    }
+  };
+
   // Preview Speech synthesis using active TTS backend (Edge / Piper / Google), falling back to Web Speech
   const handlePreviewVoice = async () => {
     setIsPlayingAudio(true);
@@ -639,8 +670,8 @@ export const StudioView: React.FC<StudioViewProps> = ({
     if (positionTab === 'card') {
       setCardPos({
         x: 50.0,
-        y: 40.0,
-        scale: 92.0,
+        y: 35.0,
+        scale: 90.0,
         borderRadius: 18,
         bgStyle: 'white'
       });
@@ -762,6 +793,21 @@ export const StudioView: React.FC<StudioViewProps> = ({
                 </button>
               </div>
 
+              {/* Alert if content is error or empty */}
+              {(postContent.includes('Không thể trích xuất') || authorDisplayName === 'Lỗi bài viết') && (
+                <div className="p-2.5 bg-amber-500/15 border border-amber-500/30 rounded-xl flex items-center justify-between text-xs mt-2 shadow-sm">
+                  <span className="text-amber-200 text-[11px] font-medium">Link Threads chưa nạp được nội dung.</span>
+                  <button
+                    type="button"
+                    onClick={handleLoadSampleViralPost}
+                    className="px-2.5 py-1 bg-amber-500 hover:bg-amber-400 text-slate-950 rounded-lg text-[10px] font-bold transition shadow cursor-pointer flex items-center gap-1 active:scale-95"
+                  >
+                    <Sparkles size={11} />
+                    <span>Dùng mẫu viral</span>
+                  </button>
+                </div>
+              )}
+
               {/* Editable Content Drawer */}
               {isEditingContent && (
                 <div className="pt-2 p-3 bg-[#111e35] border border-[#213a63] rounded-xl space-y-2 mt-2">
@@ -798,7 +844,14 @@ export const StudioView: React.FC<StudioViewProps> = ({
                     />
                   </div>
                   <div className="flex justify-between items-center pt-1">
-                    <span className="text-[10px] text-slate-400">Tự động cập nhật trực tiếp lên thẻ</span>
+                    <button
+                      type="button"
+                      onClick={handleLoadSampleViralPost}
+                      className="text-[10px] text-cyan-400 hover:text-cyan-300 font-semibold flex items-center gap-1 cursor-pointer transition"
+                    >
+                      <Sparkles size={11} />
+                      <span>Nạp mẫu viral</span>
+                    </button>
                     <button
                       type="button"
                       onClick={handleSavePostContent}
@@ -1444,7 +1497,13 @@ export const StudioView: React.FC<StudioViewProps> = ({
                         <span className="font-bold text-xs">
                           {maskAuthor 
                             ? 'Người dùng ẩn danh' 
-                            : (isViewingPost ? (authorDisplayName || project.post.displayName) : currentComment?.displayName)}
+                            : (isViewingPost 
+                                ? ((authorDisplayName && authorDisplayName !== 'Lỗi bài viết') 
+                                    ? authorDisplayName 
+                                    : (project.post.displayName && project.post.displayName !== 'Lỗi bài viết' 
+                                        ? project.post.displayName 
+                                        : 'Việt Storyteller')) 
+                                : currentComment?.displayName)}
                         </span>
                         {project.post.verified && !maskAuthor && (
                           <div className="w-3.5 h-3.5 rounded-full bg-blue-500 text-white flex items-center justify-center text-[9px] font-bold">
@@ -1453,7 +1512,15 @@ export const StudioView: React.FC<StudioViewProps> = ({
                         )}
                       </div>
                       <span className="text-[10px] opacity-60">
-                        {maskAuthor ? '@anonymous' : `@${isViewingPost ? (authorUsername || project.post.username) : currentComment?.username}`}
+                        {maskAuthor 
+                          ? '@anonymous' 
+                          : `@${isViewingPost 
+                              ? ((authorUsername && authorUsername !== 'error') 
+                                  ? authorUsername 
+                                  : (project.post.username && project.post.username !== 'error' 
+                                      ? project.post.username 
+                                      : 'viet_story')) 
+                              : currentComment?.username}`}
                       </span>
                     </div>
                   </div>
@@ -1466,7 +1533,11 @@ export const StudioView: React.FC<StudioViewProps> = ({
 
                 {/* Content */}
                 <div className="text-xs leading-relaxed mb-2.5 font-medium">
-                  {isViewingPost ? postContent : currentComment?.content}
+                  {isViewingPost 
+                    ? ((postContent && !postContent.includes('Không thể trích xuất') && postContent !== 'Không thể trích xuất nội dung.') 
+                        ? postContent 
+                        : 'Một câu chuyện hay bắt đầu từ những điều rất nhỏ. Bạn có bao giờ tự hỏi liệu một quyết định bất ngờ trong quá khứ đã thay đổi hoàn toàn tương lai của bạn như thế nào chưa?') 
+                    : currentComment?.content}
                 </div>
 
                 {/* Media attachments inside Card */}

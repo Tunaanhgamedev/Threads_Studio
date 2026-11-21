@@ -8,6 +8,7 @@ import { DiscoveryView } from './views/DiscoveryView';
 import { YouTubePublishingView } from './views/YouTubePublishingView';
 import { YouTubeAnalyticsView } from './views/YouTubeAnalyticsView';
 import { AIIntelligenceView } from './views/AIIntelligenceView';
+import { ContentExperimentView } from './views/ContentExperimentView';
 import { DashboardView } from './views/DashboardView';
 import { SourcesView } from './views/SourcesView';
 import { CommentsView } from './views/CommentsView';
@@ -226,6 +227,14 @@ export const App: React.FC = () => {
 
         {activeTab === 'intelligence' && (
           <AIIntelligenceView
+            onOpenStudio={() => setActiveTab('studio')}
+            onOpenPublishing={() => setActiveTab('youtube')}
+          />
+        )}
+
+        {activeTab === 'experiments' && (
+          <ContentExperimentView
+            onOpenVideoModal={handleOpenVideoDirect}
             onOpenStudio={() => setActiveTab('studio')}
             onOpenPublishing={() => setActiveTab('youtube')}
           />

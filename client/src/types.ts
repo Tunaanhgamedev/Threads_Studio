@@ -520,3 +520,76 @@ export interface AIIntelligenceReport {
   source: 'ollama_ai' | 'smart_heuristic';
   createdAt: string;
 }
+
+// Phase 13 - Content Experiment & A/B Testing
+export type ExperimentType = 'title' | 'thumbnail' | 'title_and_thumbnail';
+export type ExperimentMode = 'sequential' | 'youtube_native';
+export type ExperimentStatus = 'draft' | 'running' | 'completed' | 'cancelled';
+export type VariantStatus = 'pending' | 'running' | 'completed';
+
+export interface ExperimentVariant {
+  id: string;
+  label: 'A' | 'B' | 'C';
+  name: string;
+  title?: string;
+  thumbnailUrl?: string;
+  status: VariantStatus;
+  startDate?: string;
+  endDate?: string;
+  daysActive: number;
+  views: number;
+  watchTimeMinutes: number;
+  averageViewPercentage: number;
+  averageViewDurationSeconds: number;
+  subscribersGained: number;
+  likes: number;
+  comments: number;
+  shares: number;
+  viewsPerDay: number;
+  watchTimeMinutesPerDay: number;
+  nativeWatchTimeShare?: number; // % e.g. 52.4
+  nativeImpressionsCtr?: number; // % e.g. 7.5
+  isWinner?: boolean;
+}
+
+export interface ContentExperiment {
+  id: string;
+  title: string;
+  videoId: string;
+  videoTitle: string;
+  videoThumbnailUrl?: string;
+  accountId?: string;
+  channelTitle?: string;
+  experimentType: ExperimentType;
+  testMode: ExperimentMode;
+  status: ExperimentStatus;
+  currentVariantId?: string;
+  winnerVariantId?: string;
+  winnerDeclaredAt?: string;
+  hypothesis?: string;
+  conclusion?: string;
+  variants: ExperimentVariant[];
+  targetMetric: 'watch_time_per_day' | 'views_per_day' | 'retention_rate' | 'native_watch_time_share';
+  upliftPercent?: number;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface CreateExperimentDto {
+  title: string;
+  videoId: string;
+  videoTitle: string;
+  videoThumbnailUrl?: string;
+  accountId?: string;
+  channelTitle?: string;
+  experimentType: ExperimentType;
+  testMode: ExperimentMode;
+  hypothesis?: string;
+  targetMetric?: 'watch_time_per_day' | 'views_per_day' | 'retention_rate' | 'native_watch_time_share';
+  variants: Array<{
+    label: 'A' | 'B' | 'C';
+    name: string;
+    title?: string;
+    thumbnailUrl?: string;
+  }>;
+}

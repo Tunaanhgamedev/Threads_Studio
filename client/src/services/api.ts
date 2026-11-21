@@ -17,7 +17,9 @@ import {
   YouTubePrivacyStatus,
   YouTubeAnalyticsOverview,
   AIIntelligenceReport,
-  AITitleVariation
+  AITitleVariation,
+  ContentExperiment,
+  CreateExperimentDto
 } from '../types';
 
 const API_BASE = '/api';
@@ -788,5 +790,88 @@ export const api = {
     });
     if (!data.success) throw new Error(data.error);
     return data.variations || [];
+  },
+
+  // Phase 13 - Content Experiment & A/B Testing
+  async getExperiments(filters?: { status?: string; videoId?: string; accountId?: string }): Promise<ContentExperiment[]> {
+    const params = new URLSearchParams();
+    if (filters?.status && filters.status !== 'all') params.append('status', filters.status);
+    if (filters?.videoId) params.append('videoId', filters.videoId);
+    if (filters?.accountId) params.append('accountId', filters.accountId);
+    const query = params.toString() ? `?${params.toString()}` : '';
+
+    const data = await fetchJson<{ success: boolean; experiments: ContentExperiment[]; error?: string }>(`${API_BASE}/experiments${query}`);
+    if (!data.success) throw new Error(data.error);
+    return data.experiments || [];
+  },
+
+  async getExperiment(id: string): Promise<ContentExperiment> {
+    const data = await fetchJson<{ success: boolean; experiment: ContentExperiment; error?: string }>(`${API_BASE}/experiments/${id}`);
+    if (!data.success) throw new Error(data.error);
+    return data.experiment;
+  },
+
+  async createExperiment(dto: CreateExperimentDto): Promise<ContentExperiment> {
+    const data = await fetchJson<{ success: boolean; experiment: ContentExperiment; error?: string }>(`${API_BASE}/experiments`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(dto)
+    });
+    if (!data.success) throw new Error(data.error);
+    return data.experiment;
+  },
+
+  async startSequentialVariant(experimentId: string, variantId: string): Promise<ContentExperiment> {
+    const data = await fetchJson<{ success: boolean; experiment: ContentExperiment; error?: string }>(`${API_BASE}/experiments/${experimentId}/variants/${variantId}/start`, {
+      method: 'POST'
+    });
+    if (!data.success) throw new Error(data.error);
+    return data.experiment;
+  },
+
+  async endSequentialVariant(experimentId: string, variantId: string): Promise<ContentExperiment> {
+    const data = await fetchJson<{ success: boolean; experiment: ContentExperiment; error?: string }>(`${API_BASE}/experiments/${experimentId}/variants/${variantId}/end`, {
+      method: 'POST'
+    });
+    if (!data.success) throw new Error(data.error);
+    return data.experiment;
+  },
+
+  async syncVariantAnalytics(experimentId: string, variantId: string): Promise<ContentExperiment> {
+    const data = await fetchJson<{ success: boolean; experiment: ContentExperiment; error?: string }>(`${API_BASE}/experiments/${experimentId}/variants/${variantId}/sync`, {
+      method: 'POST'
+    });
+    if (!data.success) throw new Error(data.error);
+    return data.experiment;
+  },
+
+  async recordNativeResult(
+    experimentId: string,
+    results: Array<{ variantId: string; watchTimeShare: number; impressionsCtr?: number }>
+  ): Promise<ContentExperiment> {
+    const data = await fetchJson<{ success: boolean; experiment: ContentExperiment; error?: string }>(`${API_BASE}/experiments/${experimentId}/native-result`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ results })
+    });
+    if (!data.success) throw new Error(data.error);
+    return data.experiment;
+  },
+
+  async declareWinner(experimentId: string, winnerVariantId: string, conclusion?: string): Promise<ContentExperiment> {
+    const data = await fetchJson<{ success: boolean; experiment: ContentExperiment; error?: string }>(`${API_BASE}/experiments/${experimentId}/set-winner`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ winnerVariantId, conclusion })
+    });
+    if (!data.success) throw new Error(data.error);
+    return data.experiment;
+  },
+
+  async deleteExperiment(id: string): Promise<void> {
+    const data = await fetchJson<{ success: boolean; error?: string }>(`${API_BASE}/experiments/${id}`, {
+      method: 'DELETE'
+    });
+    if (!data.success) throw new Error(data.error);
   }
 };

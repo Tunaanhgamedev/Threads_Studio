@@ -10,8 +10,8 @@ export class TemplateService {
       aspectRatio: '9:16',
       cardPosition: {
         x: 50,
-        y: 40,
-        scale: 92,
+        y: 35,
+        scale: 90,
         borderRadius: 18,
         bgStyle: 'white'
       },
@@ -56,8 +56,8 @@ export class TemplateService {
       aspectRatio: '9:16',
       cardPosition: {
         x: 50,
-        y: 40,
-        scale: 92,
+        y: 35,
+        scale: 90,
         borderRadius: 18,
         bgStyle: 'white'
       },
@@ -102,8 +102,8 @@ export class TemplateService {
       aspectRatio: '9:16',
       cardPosition: {
         x: 50,
-        y: 40,
-        scale: 92,
+        y: 35,
+        scale: 90,
         borderRadius: 18,
         bgStyle: 'white'
       },
