@@ -136,10 +136,17 @@ export class ThreadsExtractor {
         } catch {}
       });
 
-      // Navigate to URL
-      await page.goto(url, { waitUntil: 'domcontentloaded', timeout: 15000 });
-      // Allow dynamic React/Relay DOM to hydrate and render comments
-      await page.waitForTimeout(3000);
+      // Navigate to URL with resilient timeout
+      await page.goto(url, { waitUntil: 'domcontentloaded', timeout: 20000 });
+      await page.waitForTimeout(2000);
+
+      // Scroll to trigger virtualized replies list rendering
+      await page.evaluate(async () => {
+        window.scrollBy(0, 700);
+        await new Promise(r => setTimeout(r, 800));
+        window.scrollBy(0, 1000);
+        await new Promise(r => setTimeout(r, 1000));
+      });
 
       // Scrape data directly from page DOM
       const domData = await page.evaluate(() => {

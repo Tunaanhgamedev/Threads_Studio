@@ -1,4 +1,4 @@
-import { Project, VoiceItem, SystemSettings, RenderJob, StudioTemplate, BatchJob, BatchItem } from '../types';
+import { Project, VoiceItem, SystemSettings, RenderJob, StudioTemplate, BatchJob, BatchItem, ThreadsAccount, ThreadsSyncedPost } from '../types';
 
 const API_BASE = '/api';
 
@@ -376,5 +376,81 @@ export const api = {
       method: 'DELETE'
     });
     if (!data.success) throw new Error(data.error);
+  },
+
+  // Phase 8 - Threads API Connector & Real Data Sync
+  async getThreadsAccounts(): Promise<ThreadsAccount[]> {
+    const data = await fetchJson<{ success: boolean; accounts: ThreadsAccount[]; error?: string }>(`${API_BASE}/threads-connector/accounts`);
+    if (!data.success) throw new Error(data.error);
+    return data.accounts || [];
+  },
+
+  async addThreadsAccount(payload: { accessToken: string; username?: string; displayName?: string; autoSync?: boolean; syncIntervalMins?: number }): Promise<ThreadsAccount> {
+    const data = await fetchJson<{ success: boolean; account: ThreadsAccount; error?: string }>(`${API_BASE}/threads-connector/accounts`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(payload)
+    });
+    if (!data.success) throw new Error(data.error);
+    return data.account;
+  },
+
+  async testThreadsAccount(id: string): Promise<{ valid: boolean; info: any }> {
+    const data = await fetchJson<{ success: boolean; valid: boolean; info: any; error?: string }>(`${API_BASE}/threads-connector/accounts/${id}/test`, {
+      method: 'POST'
+    });
+    if (!data.success) throw new Error(data.error);
+    return { valid: data.valid, info: data.info };
+  },
+
+  async syncThreadsAccount(id: string): Promise<{ syncedCount: number; errors: string[] }> {
+    const data = await fetchJson<{ success: boolean; syncedCount: number; errors: string[]; error?: string }>(`${API_BASE}/threads-connector/accounts/${id}/sync`, {
+      method: 'POST'
+    });
+    if (!data.success) throw new Error(data.error);
+    return { syncedCount: data.syncedCount, errors: data.errors };
+  },
+
+  async deleteThreadsAccount(id: string): Promise<void> {
+    const data = await fetchJson<{ success: boolean; error?: string }>(`${API_BASE}/threads-connector/accounts/${id}`, {
+      method: 'DELETE'
+    });
+    if (!data.success) throw new Error(data.error);
+  },
+
+  async getSyncedThreadsPosts(accountId?: string, status?: string): Promise<ThreadsSyncedPost[]> {
+    const params = new URLSearchParams();
+    if (accountId) params.set('accountId', accountId);
+    if (status) params.set('status', status);
+    const query = params.toString() ? `?${params.toString()}` : '';
+    const data = await fetchJson<{ success: boolean; posts: ThreadsSyncedPost[]; error?: string }>(`${API_BASE}/threads-connector/posts${query}`);
+    if (!data.success) throw new Error(data.error);
+    return data.posts || [];
+  },
+
+  async convertPostToProject(syncedPostId: string): Promise<Project> {
+    const data = await fetchJson<{ success: boolean; project: Project; error?: string }>(`${API_BASE}/threads-connector/posts/${syncedPostId}/create-project`, {
+      method: 'POST'
+    });
+    if (!data.success) throw new Error(data.error);
+    return data.project;
+  },
+
+  async queuePostToBatch(syncedPostId: string, batchId?: string): Promise<{ batchId: string; batchItemId: string }> {
+    const data = await fetchJson<{ success: boolean; batchId: string; batchItemId: string; error?: string }>(`${API_BASE}/threads-connector/posts/${syncedPostId}/queue-batch`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ batchId })
+    });
+    if (!data.success) throw new Error(data.error);
+    return { batchId: data.batchId, batchItemId: data.batchItemId };
+  },
+
+  async syncAllThreadsAccounts(): Promise<{ totalSynced: number; accountResults: Record<string, any> }> {
+    const data = await fetchJson<{ success: boolean; totalSynced: number; accountResults: Record<string, any>; error?: string }>(`${API_BASE}/threads-connector/sync-all`, {
+      method: 'POST'
+    });
+    if (!data.success) throw new Error(data.error);
+    return { totalSynced: data.totalSynced, accountResults: data.accountResults };
   }
 };

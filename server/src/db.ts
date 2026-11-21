@@ -146,6 +146,45 @@ db.exec(`
     completed_at TEXT,
     FOREIGN KEY(batch_id) REFERENCES batch_jobs(id) ON DELETE CASCADE
   );
+
+  -- Phase 8: Threads API Connector & Real Data Sync
+  CREATE TABLE IF NOT EXISTS threads_accounts (
+    id TEXT PRIMARY KEY,
+    username TEXT NOT NULL,
+    display_name TEXT,
+    threads_user_id TEXT,
+    avatar_url TEXT,
+    access_token TEXT NOT NULL,
+    token_type TEXT DEFAULT 'bearer',
+    expires_at TEXT,
+    is_active INTEGER NOT NULL DEFAULT 1,
+    auto_sync INTEGER NOT NULL DEFAULT 1,
+    sync_interval_mins INTEGER NOT NULL DEFAULT 60,
+    last_synced_at TEXT,
+    created_at TEXT NOT NULL,
+    updated_at TEXT NOT NULL
+  );
+
+  CREATE TABLE IF NOT EXISTS threads_synced_posts (
+    id TEXT PRIMARY KEY,
+    account_id TEXT,
+    threads_id TEXT NOT NULL UNIQUE,
+    permalink TEXT NOT NULL,
+    author_username TEXT NOT NULL,
+    author_name TEXT,
+    author_avatar TEXT,
+    text TEXT NOT NULL,
+    media_type TEXT,
+    media_url TEXT,
+    likes_count INTEGER DEFAULT 0,
+    replies_count INTEGER DEFAULT 0,
+    raw_replies TEXT,
+    timestamp TEXT NOT NULL,
+    status TEXT DEFAULT 'synced',
+    project_id TEXT,
+    created_at TEXT NOT NULL,
+    FOREIGN KEY(account_id) REFERENCES threads_accounts(id) ON DELETE SET NULL
+  );
 `);
 
 // Migrations for Phase 6 - Advanced Video Studio

@@ -9,10 +9,11 @@ import {
   Clock, 
   FolderArchive, 
   SlidersHorizontal,
-  Zap
+  Zap,
+  Radio
 } from 'lucide-react';
 
-export type ActiveTab = 'studio' | 'automation' | 'dashboard' | 'sources' | 'comments' | 'screenshots' | 'script' | 'queue' | 'library' | 'settings';
+export type ActiveTab = 'studio' | 'automation' | 'connector' | 'dashboard' | 'sources' | 'comments' | 'screenshots' | 'script' | 'queue' | 'library' | 'settings';
 
 interface SidebarProps {
   activeTab: ActiveTab;
@@ -29,6 +30,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
   const menuItems = [
     { id: 'studio', label: 'Threads Studio', icon: Clapperboard, badge: 'Chính' },
     { id: 'automation', label: 'Tự động hóa', icon: Zap, badge: 'Phase 7', badgeColor: 'bg-cyan-500/20 text-cyan-300' },
+    { id: 'connector', label: 'Threads API Sync', icon: Radio, badge: 'Phase 8', badgeColor: 'bg-emerald-500/20 text-emerald-300' },
     { id: 'dashboard', label: 'Dashboard', icon: LayoutDashboard },
     { id: 'sources', label: 'Nguồn Threads', icon: Globe },
     { id: 'comments', label: 'Bình luận', icon: MessageSquare },

@@ -232,3 +232,41 @@ export interface BatchJob {
   createdAt: string;
   updatedAt: string;
 }
+
+// Phase 8 - Threads API Connector & Real Data Sync
+export interface ThreadsAccount {
+  id: string;
+  username: string;
+  displayName?: string;
+  threadsUserId?: string;
+  avatarUrl?: string;
+  accessToken: string;
+  tokenType?: string;
+  expiresAt?: string;
+  isActive: boolean;
+  autoSync: boolean;
+  syncIntervalMins: number;
+  lastSyncedAt?: string;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface ThreadsSyncedPost {
+  id: string;
+  accountId?: string;
+  threadsId: string;
+  permalink: string;
+  authorUsername: string;
+  authorName?: string;
+  authorAvatar?: string;
+  text: string;
+  mediaType?: string;
+  mediaUrl?: string;
+  likesCount: number;
+  repliesCount: number;
+  rawReplies?: string;
+  timestamp: string;
+  status: 'synced' | 'imported_to_project' | 'queued_to_batch';
+  projectId?: string;
+  createdAt: string;
+}

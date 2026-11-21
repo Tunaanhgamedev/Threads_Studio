@@ -11,6 +11,8 @@ import voiceRouter from './routes/voice.js';
 import templatesRouter from './routes/templates.js';
 import mediaRouter from './routes/media.js';
 import automationRouter from './routes/automation.js';
+import threadsConnectorRouter from './routes/threadsConnector.js';
+import { ThreadsApiService } from './services/threadsApiService.js';
 import { getStorageDir } from './storagePath.js';
 
 export const app = express();
@@ -46,6 +48,7 @@ app.use('/api/settings', settingsRouter);
 app.use('/api/templates', templatesRouter);
 app.use('/api/media', mediaRouter);
 app.use('/api/automation', automationRouter);
+app.use('/api/threads-connector', threadsConnectorRouter);
 
 // Health check
 app.get('/api/health', (req, res) => {
@@ -59,4 +62,6 @@ app.get('/api/health', (req, res) => {
 
 app.listen(PORT, '127.0.0.1', () => {
   console.log(`[Threads Content Studio Server] Running on http://127.0.0.1:${PORT}`);
+  // Start Phase 8 background sync scheduler
+  ThreadsApiService.initScheduledSync();
 });
