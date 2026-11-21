@@ -2,235 +2,253 @@ import { Project, VoiceItem, SystemSettings, RenderJob, StudioTemplate, BatchJob
 
 const API_BASE = '/api';
 
+async function fetchJson<T = any>(url: string, init?: RequestInit, retries = 3): Promise<T> {
+  let lastErr: any;
+  for (let attempt = 0; attempt < retries; attempt++) {
+    try {
+      const res = await fetch(url, init);
+      const contentType = res.headers.get('content-type') || '';
+
+      if (res.ok) {
+        if (contentType.includes('application/json')) {
+          return await res.json();
+        }
+        // If 200 OK but returned HTML (e.g. Vite index.html fallback for proxy/server still starting)
+        if (attempt < retries - 1) {
+          await new Promise(r => setTimeout(r, 600));
+          continue;
+        }
+        throw new Error('Máy chủ đang khởi động, vui lòng thử lại sau giây lát.');
+      }
+
+      if (contentType.includes('application/json')) {
+        const errData = await res.json().catch(() => null);
+        if (errData?.error) throw new Error(errData.error);
+      }
+
+      if (attempt < retries - 1 && (res.status >= 500 || res.status === 404)) {
+        await new Promise(r => setTimeout(r, 600));
+        continue;
+      }
+      throw new Error(`Máy chủ phản hồi mã ${res.status}`);
+    } catch (err: any) {
+      lastErr = err;
+      if (attempt < retries - 1) {
+        await new Promise(r => setTimeout(r, 600));
+      }
+    }
+  }
+  throw lastErr || new Error('Không thể kết nối máy chủ backend');
+}
+
 export const api = {
   async getProjects(): Promise<Project[]> {
-    const res = await fetch(`${API_BASE}/projects`);
-    const data = await res.json();
+    const data = await fetchJson<{ success: boolean; projects: Project[]; error?: string }>(`${API_BASE}/projects`);
     if (!data.success) throw new Error(data.error);
-    return data.projects;
+    return data.projects || [];
   },
 
   async getProject(id: string): Promise<Project> {
-    const res = await fetch(`${API_BASE}/projects/${id}`);
-    const data = await res.json();
+    const data = await fetchJson<{ success: boolean; project: Project; error?: string }>(`${API_BASE}/projects/${id}`);
     if (!data.success) throw new Error(data.error);
     return data.project;
   },
 
   async createProject(url: string, title?: string): Promise<Project> {
-    const res = await fetch(`${API_BASE}/projects`, {
+    const data = await fetchJson<{ success: boolean; project: Project; error?: string }>(`${API_BASE}/projects`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ url, title })
     });
-    const data = await res.json();
     if (!data.success) throw new Error(data.error);
     return data.project;
   },
 
   async createProjectBatch(urls: string[]): Promise<Project[]> {
-    const res = await fetch(`${API_BASE}/projects/batch`, {
+    const data = await fetchJson<{ success: boolean; projects: Project[]; error?: string }>(`${API_BASE}/projects/batch`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ urls })
     });
-    const data = await res.json();
     if (!data.success) throw new Error(data.error);
-    return data.projects;
+    return data.projects || [];
   },
 
   async createProjectManual(payload: { title?: string; content: string; authorName?: string; rawCommentsText?: string }): Promise<Project> {
-    const res = await fetch(`${API_BASE}/projects/manual`, {
+    const data = await fetchJson<{ success: boolean; project: Project; error?: string }>(`${API_BASE}/projects/manual`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(payload)
     });
-    const data = await res.json();
     if (!data.success) throw new Error(data.error);
     return data.project;
   },
 
   async deleteProject(id: string): Promise<void> {
-    const res = await fetch(`${API_BASE}/projects/${id}`, {
+    const data = await fetchJson<{ success: boolean; error?: string }>(`${API_BASE}/projects/${id}`, {
       method: 'DELETE'
     });
-    const data = await res.json();
     if (!data.success) throw new Error(data.error);
   },
 
   async addComment(projectId: string, comment: { displayName: string; username?: string; content: string; likes?: number }): Promise<Project> {
-    const res = await fetch(`${API_BASE}/projects/${projectId}/comments`, {
+    const data = await fetchJson<{ success: boolean; project: Project; error?: string }>(`${API_BASE}/projects/${projectId}/comments`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(comment)
     });
-    const data = await res.json();
     if (!data.success) throw new Error(data.error);
     return data.project;
   },
 
   async deleteComment(projectId: string, commentId: string): Promise<Project> {
-    const res = await fetch(`${API_BASE}/projects/${projectId}/comments/${commentId}`, {
+    const data = await fetchJson<{ success: boolean; project: Project; error?: string }>(`${API_BASE}/projects/${projectId}/comments/${commentId}`, {
       method: 'DELETE'
     });
-    const data = await res.json();
     if (!data.success) throw new Error(data.error);
     return data.project;
   },
 
   async filterComments(projectId: string, options: any): Promise<Project> {
-    const res = await fetch(`${API_BASE}/projects/${projectId}/comments/filter`, {
+    const data = await fetchJson<{ success: boolean; project: Project; error?: string }>(`${API_BASE}/projects/${projectId}/comments/filter`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(options)
     });
-    const data = await res.json();
     if (!data.success) throw new Error(data.error);
     return data.project;
   },
 
   // Phase 3 - Screenshot Engine
   async getScreenshots(projectId: string): Promise<any[]> {
-    const res = await fetch(`${API_BASE}/projects/${projectId}/screenshots`);
-    const data = await res.json();
+    const data = await fetchJson<{ success: boolean; screenshots: any[]; error?: string }>(`${API_BASE}/projects/${projectId}/screenshots`);
     if (!data.success) throw new Error(data.error);
-    return data.screenshots;
+    return data.screenshots || [];
   },
 
   async renderPostScreenshot(projectId: string, options: any = {}): Promise<any> {
-    const res = await fetch(`${API_BASE}/projects/${projectId}/screenshots/render-post`, {
+    const data = await fetchJson<{ success: boolean; screenshot: any; error?: string }>(`${API_BASE}/projects/${projectId}/screenshots/render-post`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(options)
     });
-    const data = await res.json();
     if (!data.success) throw new Error(data.error);
     return data.screenshot;
   },
 
   async renderCommentScreenshot(projectId: string, commentId: string, options: any = {}): Promise<any> {
-    const res = await fetch(`${API_BASE}/projects/${projectId}/screenshots/render-comment/${commentId}`, {
+    const data = await fetchJson<{ success: boolean; screenshot: any; error?: string }>(`${API_BASE}/projects/${projectId}/screenshots/render-comment/${commentId}`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(options)
     });
-    const data = await res.json();
     if (!data.success) throw new Error(data.error);
     return data.screenshot;
   },
 
   async renderBatchScreenshots(projectId: string, options: any = {}): Promise<any[]> {
-    const res = await fetch(`${API_BASE}/projects/${projectId}/screenshots/batch`, {
+    const data = await fetchJson<{ success: boolean; screenshots: any[]; error?: string }>(`${API_BASE}/projects/${projectId}/screenshots/batch`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(options)
     });
-    const data = await res.json();
     if (!data.success) throw new Error(data.error);
-    return data.screenshots;
+    return data.screenshots || [];
   },
 
   async deleteScreenshot(projectId: string, screenshotId: string): Promise<void> {
-    const res = await fetch(`${API_BASE}/projects/${projectId}/screenshots/${screenshotId}`, {
+    const data = await fetchJson<{ success: boolean; error?: string }>(`${API_BASE}/projects/${projectId}/screenshots/${screenshotId}`, {
       method: 'DELETE'
     });
-    const data = await res.json();
     if (!data.success) throw new Error(data.error);
   },
 
   // Phase 4 - Voice & AI Audio Engine
   async getAudios(projectId: string): Promise<any[]> {
-    const res = await fetch(`${API_BASE}/projects/${projectId}/voice/audios`);
-    const data = await res.json();
+    const data = await fetchJson<{ success: boolean; audios: any[]; error?: string }>(`${API_BASE}/projects/${projectId}/voice/audios`);
     if (!data.success) throw new Error(data.error);
-    return data.audios;
+    return data.audios || [];
   },
 
   async generateSceneAudio(projectId: string, sceneId: string): Promise<any> {
-    const res = await fetch(`${API_BASE}/projects/${projectId}/voice/generate-scene/${sceneId}`, {
+    const data = await fetchJson<{ success: boolean; audio: any; error?: string }>(`${API_BASE}/projects/${projectId}/voice/generate-scene/${sceneId}`, {
       method: 'POST'
     });
-    const data = await res.json();
     if (!data.success) throw new Error(data.error);
     return data.audio;
   },
 
   async generateAllAudios(projectId: string): Promise<any[]> {
-    const res = await fetch(`${API_BASE}/projects/${projectId}/voice/generate-all`, {
+    const data = await fetchJson<{ success: boolean; audios: any[]; error?: string }>(`${API_BASE}/projects/${projectId}/voice/generate-all`, {
       method: 'POST'
     });
-    const data = await res.json();
     if (!data.success) throw new Error(data.error);
-    return data.audios;
+    return data.audios || [];
   },
 
   async generateAIScript(projectId: string): Promise<any[]> {
-    const res = await fetch(`${API_BASE}/projects/${projectId}/voice/ai-script`, {
+    const data = await fetchJson<{ success: boolean; scenes: any[]; error?: string }>(`${API_BASE}/projects/${projectId}/voice/ai-script`, {
       method: 'POST'
     });
-    const data = await res.json();
     if (!data.success) throw new Error(data.error);
-    return data.scenes;
+    return data.scenes || [];
   },
 
   async updateProject(id: string, updates: Partial<Project>): Promise<Project> {
-    const res = await fetch(`${API_BASE}/projects/${id}`, {
+    const data = await fetchJson<{ success: boolean; project: Project; error?: string }>(`${API_BASE}/projects/${id}`, {
       method: 'PUT',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(updates)
     });
-    const data = await res.json();
     if (!data.success) throw new Error(data.error);
     return data.project;
   },
 
   async fetchThread(id: string, url?: string): Promise<Project> {
-    const res = await fetch(`${API_BASE}/projects/${id}/fetch-thread`, {
+    const data = await fetchJson<{ success: boolean; project: Project; error?: string }>(`${API_BASE}/projects/${id}/fetch-thread`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ url })
     });
-    const data = await res.json();
     if (!data.success) throw new Error(data.error);
     return data.project;
   },
 
   async startRender(id: string): Promise<RenderJob> {
-    const res = await fetch(`${API_BASE}/projects/${id}/render`, {
+    const data = await fetchJson<{ success: boolean; job: RenderJob; error?: string }>(`${API_BASE}/projects/${id}/render`, {
       method: 'POST'
     });
-    const data = await res.json();
     if (!data.success) throw new Error(data.error);
     return data.job;
   },
 
   async stopRender(id: string): Promise<boolean> {
-    const res = await fetch(`${API_BASE}/projects/${id}/stop-render`, {
+    const data = await fetchJson<{ success: boolean; error?: string }>(`${API_BASE}/projects/${id}/stop-render`, {
       method: 'POST'
     });
-    const data = await res.json();
     return data.success;
   },
 
   async getRenderStatus(id: string): Promise<RenderJob | null> {
-    const res = await fetch(`${API_BASE}/projects/${id}/render-status`);
-    const data = await res.json();
-    return data.job || null;
+    try {
+      const data = await fetchJson<{ success: boolean; job: RenderJob }>(`${API_BASE}/projects/${id}/render-status`);
+      return data.job || null;
+    } catch {
+      return null;
+    }
   },
 
   async getVoices(): Promise<VoiceItem[]> {
-    const res = await fetch(`${API_BASE}/tts/voices`);
-    const data = await res.json();
-    return data.voices;
+    const data = await fetchJson<{ success: boolean; voices: VoiceItem[]; error?: string }>(`${API_BASE}/tts/voices`);
+    return data.voices || [];
   },
 
   async previewVoice(params: { voiceName?: string; voiceId?: string; speed?: number; text?: string }): Promise<{ audioUrl: string; duration: number; provider: string }> {
-    const res = await fetch(`${API_BASE}/tts/preview`, {
+    const data = await fetchJson<{ success: boolean; audioUrl: string; duration: number; provider: string; error?: string }>(`${API_BASE}/tts/preview`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(params)
     });
-    const data = await res.json();
     if (!data.success) throw new Error(data.error);
     return data;
   },
@@ -239,109 +257,124 @@ export const api = {
     tts: { activeProvider: string; piperAvailable: boolean; piperUrl: string };
     ai: { available: boolean; model?: string; availableModels: string[]; baseUrl: string; error?: string };
   }> {
-    const res = await fetch(`${API_BASE}/tts/status`);
-    const data = await res.json();
+    const data = await fetchJson<{
+      success: boolean;
+      tts: { activeProvider: string; piperAvailable: boolean; piperUrl: string };
+      ai: { available: boolean; model?: string; availableModels: string[]; baseUrl: string; error?: string };
+      error?: string;
+    }>(`${API_BASE}/tts/status`);
     if (!data.success) throw new Error(data.error);
     return data;
   },
 
   async getSettings(): Promise<SystemSettings> {
-    const res = await fetch(`${API_BASE}/settings`);
-    const data = await res.json();
+    const data = await fetchJson<{ success: boolean; settings: SystemSettings; error?: string }>(`${API_BASE}/settings`);
     return data.settings;
   },
 
   async updateSettings(settings: Partial<SystemSettings>): Promise<void> {
-    const res = await fetch(`${API_BASE}/settings`, {
+    const data = await fetchJson<{ success: boolean; error?: string }>(`${API_BASE}/settings`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(settings)
     });
-    const data = await res.json();
     if (!data.success) throw new Error(data.error);
   },
 
   // Phase 6 - Studio Templates
   async getTemplates(): Promise<StudioTemplate[]> {
-    const res = await fetch(`${API_BASE}/templates`);
-    const data = await res.json();
+    const data = await fetchJson<{ success: boolean; templates: StudioTemplate[]; error?: string }>(`${API_BASE}/templates`);
     if (!data.success) throw new Error(data.error);
-    return data.templates;
+    return data.templates || [];
   },
 
   async applyTemplate(projectId: string, templateId: string): Promise<any> {
-    const res = await fetch(`${API_BASE}/templates/projects/${projectId}/apply-template/${templateId}`, {
+    const data = await fetchJson<{ success: boolean; error?: string }>(`${API_BASE}/templates/projects/${projectId}/apply-template/${templateId}`, {
       method: 'POST'
     });
-    const data = await res.json();
     if (!data.success) throw new Error(data.error);
     return data;
   },
 
-  // Media & Native Windows Folder Browser
+  // Media & Native Windows Folder / File Browser
   async browseFolder(initialPath?: string, title?: string): Promise<string | null> {
-    const res = await fetch(`${API_BASE}/media/browse-folder`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ initialPath, title })
-    });
-    const data = await res.json();
-    return data.path || null;
+    try {
+      const data = await fetchJson<{ success: boolean; path: string | null }>(`${API_BASE}/media/browse-folder`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ initialPath, title })
+      });
+      return data.path || null;
+    } catch (err) {
+      console.warn('[browseFolder error]:', err);
+      return null;
+    }
   },
 
-  async scanFolder(folder: string): Promise<{ success: boolean; exists: boolean; path: string; videoCount: number; audioCount: number; videoFiles?: string[]; audioFiles?: string[] }> {
-    const res = await fetch(`${API_BASE}/media/scan-folder?folder=${encodeURIComponent(folder)}`);
-    return await res.json();
+  async browseFile(initialPath?: string, title?: string, fileType: 'video' | 'audio' = 'video'): Promise<string | null> {
+    try {
+      const data = await fetchJson<{ success: boolean; path: string | null }>(`${API_BASE}/media/browse-file`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ initialPath, title, fileType })
+      });
+      return data.path || null;
+    } catch (err) {
+      console.warn('[browseFile error]:', err);
+      return null;
+    }
+  },
+
+  async scanFolder(folder: string): Promise<{ success: boolean; exists: boolean; isFile?: boolean; path: string; videoCount: number; audioCount: number; videoFiles?: string[]; audioFiles?: string[] }> {
+    try {
+      return await fetchJson(`${API_BASE}/media/scan-folder?folder=${encodeURIComponent(folder)}`);
+    } catch {
+      return { success: false, exists: false, isFile: false, path: folder, videoCount: 0, audioCount: 0 };
+    }
   },
 
   // Phase 7 - Automation Engine
   async extractThreadsUrls(text: string): Promise<{ success: boolean; count: number; urls: string[] }> {
-    const res = await fetch(`${API_BASE}/automation/extract-urls`, {
+    return await fetchJson(`${API_BASE}/automation/extract-urls`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ text })
     });
-    return await res.json();
   },
 
   async createBatch(urls: string[], config?: any, title?: string): Promise<BatchJob> {
-    const res = await fetch(`${API_BASE}/automation/batches`, {
+    const data = await fetchJson<{ success: boolean; batch: BatchJob; error?: string }>(`${API_BASE}/automation/batches`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ urls, config, title })
     });
-    const data = await res.json();
     if (!data.success) throw new Error(data.error);
     return data.batch;
   },
 
   async getBatches(): Promise<BatchJob[]> {
-    const res = await fetch(`${API_BASE}/automation/batches`);
-    const data = await res.json();
+    const data = await fetchJson<{ success: boolean; batches: BatchJob[]; error?: string }>(`${API_BASE}/automation/batches`);
     if (!data.success) throw new Error(data.error);
-    return data.batches;
+    return data.batches || [];
   },
 
   async getBatch(id: string): Promise<BatchJob> {
-    const res = await fetch(`${API_BASE}/automation/batches/${id}`);
-    const data = await res.json();
+    const data = await fetchJson<{ success: boolean; batch: BatchJob; error?: string }>(`${API_BASE}/automation/batches/${id}`);
     if (!data.success) throw new Error(data.error);
     return data.batch;
   },
 
   async cancelBatch(id: string): Promise<void> {
-    const res = await fetch(`${API_BASE}/automation/batches/${id}/cancel`, {
+    const data = await fetchJson<{ success: boolean; error?: string }>(`${API_BASE}/automation/batches/${id}/cancel`, {
       method: 'POST'
     });
-    const data = await res.json();
     if (!data.success) throw new Error(data.error);
   },
 
   async deleteBatch(id: string): Promise<void> {
-    const res = await fetch(`${API_BASE}/automation/batches/${id}`, {
+    const data = await fetchJson<{ success: boolean; error?: string }>(`${API_BASE}/automation/batches/${id}`, {
       method: 'DELETE'
     });
-    const data = await res.json();
     if (!data.success) throw new Error(data.error);
   }
 };

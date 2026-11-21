@@ -14,8 +14,8 @@ powershell -NoProfile -ExecutionPolicy Bypass -Command "Get-NetTCPConnection -St
 echo [2/3] Dang khoi dong Backend API va Frontend Studio...
 echo.
 
-:: Tu dong mo cua so app desktop bang Chrome / Edge PWA Mode sau 3 giay
-start "" powershell -NoProfile -ExecutionPolicy Bypass -Command "Start-Sleep -Seconds 3; if (Test-Path 'C:\Program Files\Google\Chrome\Application\chrome.exe') { Start-Process 'C:\Program Files\Google\Chrome\Application\chrome.exe' -ArgumentList '--app=http://127.0.0.1:5173', '--window-size=1366,850' } elseif (Test-Path 'C:\Program Files (x86)\Microsoft\Edge\Application\msedge.exe') { Start-Process 'C:\Program Files (x86)\Microsoft\Edge\Application\msedge.exe' -ArgumentList '--app=http://127.0.0.1:5173', '--window-size=1366,850' } else { Start-Process 'http://127.0.0.1:5173' }"
+:: Tu dong kiem tra he thong va mo cua so app desktop khi da san sang 100%
+start "" powershell -NoProfile -ExecutionPolicy Bypass -Command "for ($i=0; $i -lt 30; $i++) { Start-Sleep -Milliseconds 600; try { $be = Invoke-WebRequest -Uri 'http://127.0.0.1:3210/api/health' -UseBasicParsing -TimeoutSec 1; $fe = Invoke-WebRequest -Uri 'http://127.0.0.1:5173' -UseBasicParsing -TimeoutSec 1; if ($be.StatusCode -eq 200 -and $fe.StatusCode -eq 200) { break } } catch {} }; if (Test-Path 'C:\Program Files\Google\Chrome\Application\chrome.exe') { Start-Process 'C:\Program Files\Google\Chrome\Application\chrome.exe' -ArgumentList '--app=http://127.0.0.1:5173', '--window-size=1366,850' } elseif (Test-Path 'C:\Program Files (x86)\Microsoft\Edge\Application\msedge.exe') { Start-Process 'C:\Program Files (x86)\Microsoft\Edge\Application\msedge.exe' -ArgumentList '--app=http://127.0.0.1:5173', '--window-size=1366,850' } else { Start-Process 'http://127.0.0.1:5173' }"
 
 echo [3/3] Dang mo giao dien ung dung Threads Studio...
 echo.

@@ -182,13 +182,13 @@ if (existingProjectCount.count === 0) {
       y: 65.0,
       scale: 110.0,
       borderRadius: 12,
-      folder: 'D:/TOOL/NGUỒN - NỀN - NHẠC/VIDEO PHỤ/T',
+      folder: '',
       mute: true,
       loop: true
     },
-    backgroundVideoFolder: 'D:/TOOL/NGUỒN - NỀN - NHẠC/VIDEO NỀN/n',
+    backgroundVideoFolder: '',
     backgroundMusic: {
-      folder: 'D:/TOOL/NGUỒN - NỀN - NHẠC/NHẠC NỀN',
+      folder: '',
       volume: 20,
       enabled: true
     },

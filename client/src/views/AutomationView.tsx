@@ -42,10 +42,10 @@ export const AutomationView: React.FC<AutomationViewProps> = ({
   const [aspectRatio, setAspectRatio] = useState<'9:16' | '16:9' | '1:1'>('9:16');
   const [voiceName, setVoiceName] = useState('VieNeu - Ngọc Huyền (Nữ miền Bắc)');
   const [voiceSpeed, setVoiceSpeed] = useState(1.2);
-  const [bgVideoFolder, setBgVideoFolder] = useState('D:/TOOL/NGUỒN - NỀN - NHẠC/VIDEO NỀN/n');
+  const [bgVideoFolder, setBgVideoFolder] = useState('');
   const [subVideoEnabled, setSubVideoEnabled] = useState(true);
-  const [subVideoFolder, setSubVideoFolder] = useState('D:/TOOL/NGUỒN - NỀN - NHẠC/VIDEO PHỤ/T');
-  const [bgMusicFolder, setBgMusicFolder] = useState('D:/TOOL/NGUỒN - NỀN - NHẠC/NHẠC NỀN');
+  const [subVideoFolder, setSubVideoFolder] = useState('');
+  const [bgMusicFolder, setBgMusicFolder] = useState('');
   const [bgMusicVolume, setBgMusicVolume] = useState(20);
   const [watermarkText, setWatermarkText] = useState('@ThreadsStudio');
 
@@ -114,9 +114,14 @@ export const AutomationView: React.FC<AutomationViewProps> = ({
     return () => clearInterval(interval);
   }, [activeBatch?.id, activeBatch?.status]);
 
-  // Folder Browsers
+  // Folder & File Browsers
   const handleBrowseBgVideo = async () => {
     const p = await api.browseFolder(bgVideoFolder, 'Chọn thư mục Video nền');
+    if (p) setBgVideoFolder(p);
+  };
+
+  const handleBrowseBgVideoFile = async () => {
+    const p = await api.browseFile(bgVideoFolder, 'Chọn file Video nền', 'video');
     if (p) setBgVideoFolder(p);
   };
 
@@ -125,8 +130,18 @@ export const AutomationView: React.FC<AutomationViewProps> = ({
     if (p) setSubVideoFolder(p);
   };
 
+  const handleBrowseSubVideoFile = async () => {
+    const p = await api.browseFile(subVideoFolder, 'Chọn file Video phụ (Meme / Gameplay)', 'video');
+    if (p) setSubVideoFolder(p);
+  };
+
   const handleBrowseBgMusic = async () => {
     const p = await api.browseFolder(bgMusicFolder, 'Chọn thư mục Nhạc nền');
+    if (p) setBgMusicFolder(p);
+  };
+
+  const handleBrowseBgMusicFile = async () => {
+    const p = await api.browseFile(bgMusicFolder, 'Chọn file Nhạc nền (MP3 / WAV)', 'audio');
     if (p) setBgMusicFolder(p);
   };
 
@@ -353,16 +368,27 @@ export const AutomationView: React.FC<AutomationViewProps> = ({
                 <input
                   type="text"
                   value={bgVideoFolder}
+                  placeholder="Chọn file hoặc thư mục video nền..."
                   onChange={(e) => setBgVideoFolder(e.target.value)}
                   className="flex-1 bg-[#152542] border border-[#213b63] rounded-xl px-3 py-1.5 text-xs text-slate-200 font-mono truncate focus:outline-none"
                 />
                 <button
                   type="button"
-                  onClick={handleBrowseBgVideo}
-                  className="bg-[#1b2f52] hover:bg-[#233d6b] text-slate-200 px-3 py-1.5 rounded-xl text-xs font-semibold border border-[#254370] transition shrink-0 flex items-center gap-1.5 cursor-pointer active:scale-95"
+                  onClick={handleBrowseBgVideoFile}
+                  className="bg-[#1b2f52] hover:bg-[#233d6b] text-slate-200 px-2.5 py-1.5 rounded-xl text-xs font-semibold border border-[#254370] transition shrink-0 flex items-center gap-1 cursor-pointer active:scale-95"
+                  title="Chọn 1 file video cụ thể"
                 >
-                  <FolderOpen size={13} className="text-blue-400" />
-                  <span>Chọn</span>
+                  <Film size={12} className="text-cyan-400" />
+                  <span>File</span>
+                </button>
+                <button
+                  type="button"
+                  onClick={handleBrowseBgVideo}
+                  className="bg-[#1b2f52] hover:bg-[#233d6b] text-slate-200 px-2.5 py-1.5 rounded-xl text-xs font-semibold border border-[#254370] transition shrink-0 flex items-center gap-1 cursor-pointer active:scale-95"
+                  title="Chọn thư mục video ngẫu nhiên"
+                >
+                  <FolderOpen size={12} className="text-blue-400" />
+                  <span>Thư mục</span>
                 </button>
               </div>
             </div>
@@ -384,16 +410,27 @@ export const AutomationView: React.FC<AutomationViewProps> = ({
                   <input
                     type="text"
                     value={subVideoFolder}
+                    placeholder="Chọn file hoặc thư mục video phụ..."
                     onChange={(e) => setSubVideoFolder(e.target.value)}
                     className="flex-1 bg-[#152542] border border-[#213b63] rounded-xl px-3 py-1.5 text-xs text-slate-200 font-mono truncate focus:outline-none"
                   />
                   <button
                     type="button"
-                    onClick={handleBrowseSubVideo}
-                    className="bg-[#1b2f52] hover:bg-[#233d6b] text-slate-200 px-3 py-1.5 rounded-xl text-xs font-semibold border border-[#254370] transition shrink-0 flex items-center gap-1.5 cursor-pointer active:scale-95"
+                    onClick={handleBrowseSubVideoFile}
+                    className="bg-[#1b2f52] hover:bg-[#233d6b] text-slate-200 px-2.5 py-1.5 rounded-xl text-xs font-semibold border border-[#254370] transition shrink-0 flex items-center gap-1 cursor-pointer active:scale-95"
+                    title="Chọn 1 file video phụ cụ thể"
                   >
-                    <FolderOpen size={13} className="text-cyan-400" />
-                    <span>Chọn</span>
+                    <Film size={12} className="text-cyan-400" />
+                    <span>File</span>
+                  </button>
+                  <button
+                    type="button"
+                    onClick={handleBrowseSubVideo}
+                    className="bg-[#1b2f52] hover:bg-[#233d6b] text-slate-200 px-2.5 py-1.5 rounded-xl text-xs font-semibold border border-[#254370] transition shrink-0 flex items-center gap-1 cursor-pointer active:scale-95"
+                    title="Chọn thư mục video phụ"
+                  >
+                    <FolderOpen size={12} className="text-cyan-400" />
+                    <span>Thư mục</span>
                   </button>
                 </div>
               )}
@@ -409,16 +446,27 @@ export const AutomationView: React.FC<AutomationViewProps> = ({
                 <input
                   type="text"
                   value={bgMusicFolder}
+                  placeholder="Chọn file hoặc thư mục nhạc nền..."
                   onChange={(e) => setBgMusicFolder(e.target.value)}
                   className="flex-1 bg-[#152542] border border-[#213b63] rounded-xl px-3 py-1.5 text-xs text-slate-200 font-mono truncate focus:outline-none"
                 />
                 <button
                   type="button"
-                  onClick={handleBrowseBgMusic}
-                  className="bg-[#1b2f52] hover:bg-[#233d6b] text-slate-200 px-3 py-1.5 rounded-xl text-xs font-semibold border border-[#254370] transition shrink-0 flex items-center gap-1.5 cursor-pointer active:scale-95"
+                  onClick={handleBrowseBgMusicFile}
+                  className="bg-[#1b2f52] hover:bg-[#233d6b] text-slate-200 px-2.5 py-1.5 rounded-xl text-xs font-semibold border border-[#254370] transition shrink-0 flex items-center gap-1 cursor-pointer active:scale-95"
+                  title="Chọn 1 file nhạc nền cụ thể"
                 >
-                  <FolderOpen size={13} className="text-purple-400" />
-                  <span>Chọn</span>
+                  <Volume2 size={12} className="text-purple-400" />
+                  <span>File</span>
+                </button>
+                <button
+                  type="button"
+                  onClick={handleBrowseBgMusic}
+                  className="bg-[#1b2f52] hover:bg-[#233d6b] text-slate-200 px-2.5 py-1.5 rounded-xl text-xs font-semibold border border-[#254370] transition shrink-0 flex items-center gap-1 cursor-pointer active:scale-95"
+                  title="Chọn thư mục nhạc nền"
+                >
+                  <FolderOpen size={12} className="text-purple-400" />
+                  <span>Thư mục</span>
                 </button>
               </div>
               <input

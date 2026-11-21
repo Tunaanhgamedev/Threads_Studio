@@ -54,7 +54,7 @@ export const StudioView: React.FC<StudioViewProps> = ({
     y: 65.0,
     scale: 110.0,
     borderRadius: 12,
-    folder: 'D:/TOOL/NGUỒN - NỀN - NHẠC/VIDEO PHỤ/T',
+    folder: '',
     mute: true,
     loop: true
   };
@@ -78,10 +78,10 @@ export const StudioView: React.FC<StudioViewProps> = ({
   const [bgMusicFolder, setBgMusicFolder] = useState(project.config?.backgroundMusic?.folder || '');
   const [bgMusicVolume, setBgMusicVolume] = useState(project.config?.backgroundMusic?.volume ?? 20);
 
-  // Folder real-time scan statuses
-  const [bgVideoInfo, setBgVideoInfo] = useState<{ checked: boolean; exists: boolean; count: number }>({ checked: false, exists: false, count: 0 });
-  const [subVideoInfo, setSubVideoInfo] = useState<{ checked: boolean; exists: boolean; count: number }>({ checked: false, exists: false, count: 0 });
-  const [bgMusicInfo, setBgMusicInfo] = useState<{ checked: boolean; exists: boolean; count: number }>({ checked: false, exists: false, count: 0 });
+  // Folder & File real-time scan statuses
+  const [bgVideoInfo, setBgVideoInfo] = useState<{ checked: boolean; exists: boolean; count: number; isFile?: boolean }>({ checked: false, exists: false, count: 0, isFile: false });
+  const [subVideoInfo, setSubVideoInfo] = useState<{ checked: boolean; exists: boolean; count: number; isFile?: boolean }>({ checked: false, exists: false, count: 0, isFile: false });
+  const [bgMusicInfo, setBgMusicInfo] = useState<{ checked: boolean; exists: boolean; count: number; isFile?: boolean }>({ checked: false, exists: false, count: 0, isFile: false });
 
   // Position & sizing tabs: 'card' | 'subVideo'
   const [positionTab, setPositionTab] = useState<'card' | 'subVideo'>('card');
@@ -149,15 +149,15 @@ export const StudioView: React.FC<StudioViewProps> = ({
   // Real-time Folder Scanners
   useEffect(() => {
     if (!bgVideoFolder) {
-      setBgVideoInfo({ checked: true, exists: false, count: 0 });
+      setBgVideoInfo({ checked: true, exists: false, count: 0, isFile: false });
       return;
     }
     const timer = setTimeout(async () => {
       try {
         const res = await api.scanFolder(bgVideoFolder);
-        setBgVideoInfo({ checked: true, exists: res.exists, count: res.videoCount || 0 });
+        setBgVideoInfo({ checked: true, exists: res.exists, count: res.videoCount || 0, isFile: res.isFile });
       } catch {
-        setBgVideoInfo({ checked: true, exists: false, count: 0 });
+        setBgVideoInfo({ checked: true, exists: false, count: 0, isFile: false });
       }
     }, 300);
     return () => clearTimeout(timer);
@@ -165,15 +165,15 @@ export const StudioView: React.FC<StudioViewProps> = ({
 
   useEffect(() => {
     if (!subVideoFolder) {
-      setSubVideoInfo({ checked: true, exists: false, count: 0 });
+      setSubVideoInfo({ checked: true, exists: false, count: 0, isFile: false });
       return;
     }
     const timer = setTimeout(async () => {
       try {
         const res = await api.scanFolder(subVideoFolder);
-        setSubVideoInfo({ checked: true, exists: res.exists, count: res.videoCount || 0 });
+        setSubVideoInfo({ checked: true, exists: res.exists, count: res.videoCount || 0, isFile: res.isFile });
       } catch {
-        setSubVideoInfo({ checked: true, exists: false, count: 0 });
+        setSubVideoInfo({ checked: true, exists: false, count: 0, isFile: false });
       }
     }, 300);
     return () => clearTimeout(timer);
@@ -181,21 +181,21 @@ export const StudioView: React.FC<StudioViewProps> = ({
 
   useEffect(() => {
     if (!bgMusicFolder) {
-      setBgMusicInfo({ checked: true, exists: false, count: 0 });
+      setBgMusicInfo({ checked: true, exists: false, count: 0, isFile: false });
       return;
     }
     const timer = setTimeout(async () => {
       try {
         const res = await api.scanFolder(bgMusicFolder);
-        setBgMusicInfo({ checked: true, exists: res.exists, count: res.audioCount || 0 });
+        setBgMusicInfo({ checked: true, exists: res.exists, count: res.audioCount || 0, isFile: res.isFile });
       } catch {
-        setBgMusicInfo({ checked: true, exists: false, count: 0 });
+        setBgMusicInfo({ checked: true, exists: false, count: 0, isFile: false });
       }
     }, 300);
     return () => clearTimeout(timer);
   }, [bgMusicFolder]);
 
-  // Native Windows Folder Browser Handlers
+  // Native Windows Folder & File Browser Handlers
   const handleBrowseBgVideo = async () => {
     try {
       const selected = await api.browseFolder(bgVideoFolder, 'Chọn thư mục chứa Video nền');
@@ -204,6 +204,17 @@ export const StudioView: React.FC<StudioViewProps> = ({
       }
     } catch (err: any) {
       console.warn('Folder browse failed:', err);
+    }
+  };
+
+  const handleBrowseBgVideoFile = async () => {
+    try {
+      const selected = await api.browseFile(bgVideoFolder, 'Chọn file Video nền', 'video');
+      if (selected) {
+        setBgVideoFolder(selected);
+      }
+    } catch (err: any) {
+      console.warn('File browse failed:', err);
     }
   };
 
@@ -218,6 +229,17 @@ export const StudioView: React.FC<StudioViewProps> = ({
     }
   };
 
+  const handleBrowseSubVideoFile = async () => {
+    try {
+      const selected = await api.browseFile(subVideoFolder, 'Chọn file Video phụ (Meme / Gameplay)', 'video');
+      if (selected) {
+        setSubVideoFolder(selected);
+      }
+    } catch (err: any) {
+      console.warn('File browse failed:', err);
+    }
+  };
+
   const handleBrowseBgMusic = async () => {
     try {
       const selected = await api.browseFolder(bgMusicFolder, 'Chọn thư mục chứa Nhạc nền');
@@ -226,6 +248,17 @@ export const StudioView: React.FC<StudioViewProps> = ({
       }
     } catch (err: any) {
       console.warn('Folder browse failed:', err);
+    }
+  };
+
+  const handleBrowseBgMusicFile = async () => {
+    try {
+      const selected = await api.browseFile(bgMusicFolder, 'Chọn file Nhạc nền (MP3 / WAV / M4A)', 'audio');
+      if (selected) {
+        setBgMusicFolder(selected);
+      }
+    } catch (err: any) {
+      console.warn('File browse failed:', err);
     }
   };
 
@@ -502,7 +535,7 @@ export const StudioView: React.FC<StudioViewProps> = ({
         y: 65.0,
         scale: 110.0,
         borderRadius: 12,
-        folder: 'D:/TOOL/NGUỒN - NỀN - NHẠC/VIDEO PHỤ/T',
+        folder: '',
         mute: true,
         loop: true
       });
@@ -840,10 +873,10 @@ export const StudioView: React.FC<StudioViewProps> = ({
             {/* Video nền */}
             <div>
               <div className="flex items-center justify-between mb-1">
-                <label className="block text-[11px] text-slate-400">Thư mục video nền - ngẫu nhiên</label>
+                <label className="block text-[11px] text-slate-400">Video nền (Thư mục ngẫu nhiên hoặc 1 file video)</label>
                 {bgVideoInfo.checked && (
-                  <span className={`text-[10px] font-mono font-medium ${bgVideoInfo.exists && bgVideoInfo.count > 0 ? 'text-emerald-400' : 'text-amber-400'}`}>
-                    {bgVideoInfo.exists ? `✓ ${bgVideoInfo.count} video sẵn sàng` : '⚠ Chưa thấy file video'}
+                  <span className={`text-[10px] font-mono font-medium ${bgVideoInfo.exists && (bgVideoInfo.count > 0 || bgVideoInfo.isFile) ? 'text-emerald-400' : 'text-amber-400'}`}>
+                    {bgVideoInfo.exists ? (bgVideoInfo.isFile ? '✓ File video sẵn sàng' : `✓ ${bgVideoInfo.count} video sẵn sàng`) : '⚠ Chưa thấy file video'}
                   </span>
                 )}
               </div>
@@ -851,14 +884,22 @@ export const StudioView: React.FC<StudioViewProps> = ({
                 <input
                   type="text"
                   value={bgVideoFolder}
-                  placeholder="D:/TOOL/NGUỒN - NỀN - NHẠC/VIDEO NỀN/n"
+                  placeholder="Chọn thư mục hoặc file video nền..."
                   onChange={(e) => setBgVideoFolder(e.target.value)}
                   className="flex-1 bg-[#152542] border border-[#213b63] rounded-xl px-3 py-1.5 text-xs text-slate-200 font-mono truncate focus:outline-none focus:border-blue-500"
                 />
                 <button 
+                  onClick={handleBrowseBgVideoFile}
+                  className="bg-[#1b2f52] hover:bg-[#233d6b] text-slate-200 px-2.5 py-1.5 rounded-xl text-xs font-semibold border border-[#254370] transition shrink-0 flex items-center gap-1.5 cursor-pointer active:scale-95"
+                  title="Chọn 1 file video nền cụ thể (.mp4, .mov, .mkv)"
+                >
+                  <Film size={13} className="text-cyan-400" />
+                  <span>Chọn file</span>
+                </button>
+                <button 
                   onClick={handleBrowseBgVideo}
-                  className="bg-[#1b2f52] hover:bg-[#233d6b] text-slate-200 px-3 py-1.5 rounded-xl text-xs font-semibold border border-[#254370] transition shrink-0 flex items-center gap-1.5 cursor-pointer active:scale-95"
-                  title="Mở hộp thoại chọn thư mục Windows"
+                  className="bg-[#1b2f52] hover:bg-[#233d6b] text-slate-200 px-2.5 py-1.5 rounded-xl text-xs font-semibold border border-[#254370] transition shrink-0 flex items-center gap-1.5 cursor-pointer active:scale-95"
+                  title="Chọn thư mục chứa nhiều video nền"
                 >
                   <FolderOpen size={13} className="text-blue-400" />
                   <span>Chọn thư mục</span>
@@ -879,8 +920,8 @@ export const StudioView: React.FC<StudioViewProps> = ({
                   <span>Video phụ (Meme / Satisfying / Gameplay)</span>
                 </label>
                 {subVideoEnabled && subVideoInfo.checked && (
-                  <span className={`text-[10px] font-mono font-medium ${subVideoInfo.exists && subVideoInfo.count > 0 ? 'text-emerald-400' : 'text-amber-400'}`}>
-                    {subVideoInfo.exists ? `✓ ${subVideoInfo.count} video` : '⚠ Chưa thấy video'}
+                  <span className={`text-[10px] font-mono font-medium ${subVideoInfo.exists && (subVideoInfo.count > 0 || subVideoInfo.isFile) ? 'text-emerald-400' : 'text-amber-400'}`}>
+                    {subVideoInfo.exists ? (subVideoInfo.isFile ? '✓ File video phụ' : `✓ ${subVideoInfo.count} video`) : '⚠ Chưa thấy video'}
                   </span>
                 )}
               </div>
@@ -891,13 +932,21 @@ export const StudioView: React.FC<StudioViewProps> = ({
                     <input
                       type="text"
                       value={subVideoFolder}
-                      placeholder="D:/TOOL/NGUỒN - NỀN - NHẠC/VIDEO PHỤ/T"
+                      placeholder="Chọn thư mục hoặc file video phụ..."
                       onChange={(e) => setSubVideoFolder(e.target.value)}
                       className="flex-1 bg-[#152542] border border-[#213b63] rounded-xl px-3 py-1.5 text-xs text-slate-200 font-mono truncate focus:outline-none focus:border-blue-500"
                     />
                     <button 
+                      onClick={handleBrowseSubVideoFile}
+                      className="bg-[#1b2f52] hover:bg-[#233d6b] text-slate-200 px-2.5 py-1.5 rounded-xl text-xs font-semibold border border-[#254370] transition shrink-0 flex items-center gap-1.5 cursor-pointer active:scale-95"
+                      title="Chọn 1 file video phụ cụ thể (.mp4, .mov, .mkv)"
+                    >
+                      <Film size={13} className="text-cyan-400" />
+                      <span>Chọn file</span>
+                    </button>
+                    <button 
                       onClick={handleBrowseSubVideo}
-                      className="bg-[#1b2f52] hover:bg-[#233d6b] text-slate-200 px-3 py-1.5 rounded-xl text-xs font-semibold border border-[#254370] transition shrink-0 flex items-center gap-1.5 cursor-pointer active:scale-95"
+                      className="bg-[#1b2f52] hover:bg-[#233d6b] text-slate-200 px-2.5 py-1.5 rounded-xl text-xs font-semibold border border-[#254370] transition shrink-0 flex items-center gap-1.5 cursor-pointer active:scale-95"
                       title="Mở hộp thoại chọn thư mục Windows"
                     >
                       <FolderOpen size={13} className="text-cyan-400" />
@@ -912,10 +961,10 @@ export const StudioView: React.FC<StudioViewProps> = ({
             {/* Nhạc nền & âm lượng */}
             <div className="pt-2 border-t border-[#182b47]">
               <div className="flex items-center justify-between mb-1">
-                <label className="block text-[11px] text-slate-400">Thư mục nhạc nền</label>
+                <label className="block text-[11px] text-slate-400">Thư mục hoặc file nhạc nền</label>
                 {bgMusicInfo.checked && (
-                  <span className={`text-[10px] font-mono font-medium ${bgMusicInfo.exists && bgMusicInfo.count > 0 ? 'text-emerald-400' : 'text-amber-400'}`}>
-                    {bgMusicInfo.exists ? `✓ ${bgMusicInfo.count} bài nhạc` : '⚠ Chưa thấy file nhạc'}
+                  <span className={`text-[10px] font-mono font-medium ${bgMusicInfo.exists && (bgMusicInfo.count > 0 || bgMusicInfo.isFile) ? 'text-emerald-400' : 'text-amber-400'}`}>
+                    {bgMusicInfo.exists ? (bgMusicInfo.isFile ? '✓ File nhạc nền' : `✓ ${bgMusicInfo.count} bài nhạc`) : '⚠ Chưa thấy file nhạc'}
                   </span>
                 )}
               </div>
@@ -923,13 +972,21 @@ export const StudioView: React.FC<StudioViewProps> = ({
                 <input
                   type="text"
                   value={bgMusicFolder}
-                  placeholder="D:/TOOL/NGUỒN - NỀN - NHẠC/NHẠC NỀN"
+                  placeholder="Chọn thư mục hoặc file nhạc nền (.mp3, .wav)..."
                   onChange={(e) => setBgMusicFolder(e.target.value)}
                   className="flex-1 bg-[#152542] border border-[#213b63] rounded-xl px-3 py-1.5 text-xs text-slate-200 font-mono truncate focus:outline-none focus:border-blue-500"
                 />
                 <button 
+                  onClick={handleBrowseBgMusicFile}
+                  className="bg-[#1b2f52] hover:bg-[#233d6b] text-slate-200 px-2.5 py-1.5 rounded-xl text-xs font-semibold border border-[#254370] transition shrink-0 flex items-center gap-1.5 cursor-pointer active:scale-95"
+                  title="Chọn 1 file nhạc nền cụ thể (.mp3, .wav)"
+                >
+                  <Volume2 size={13} className="text-purple-400" />
+                  <span>Chọn file</span>
+                </button>
+                <button 
                   onClick={handleBrowseBgMusic}
-                  className="bg-[#1b2f52] hover:bg-[#233d6b] text-slate-200 px-3 py-1.5 rounded-xl text-xs font-semibold border border-[#254370] transition shrink-0 flex items-center gap-1.5 cursor-pointer active:scale-95"
+                  className="bg-[#1b2f52] hover:bg-[#233d6b] text-slate-200 px-2.5 py-1.5 rounded-xl text-xs font-semibold border border-[#254370] transition shrink-0 flex items-center gap-1.5 cursor-pointer active:scale-95"
                   title="Mở hộp thoại chọn thư mục Windows"
                 >
                   <FolderOpen size={13} className="text-purple-400" />
@@ -1282,7 +1339,7 @@ export const StudioView: React.FC<StudioViewProps> = ({
                     positionTab === 'subVideo' ? 'ring-2 ring-cyan-400 ring-offset-2 ring-offset-slate-950' : 'border border-cyan-500/40'
                   }`}
                 >
-                  {subVideoFolder && subVideoInfo.exists && subVideoInfo.count > 0 ? (
+                  {subVideoFolder && subVideoInfo.exists && (subVideoInfo.count > 0 || subVideoInfo.isFile) ? (
                     <video
                       key={subVideoFolder}
                       src={`/api/media/stream-local?folder=${encodeURIComponent(subVideoFolder)}&type=video`}
@@ -1293,15 +1350,29 @@ export const StudioView: React.FC<StudioViewProps> = ({
                       className="w-full h-full object-cover pointer-events-none"
                     />
                   ) : (
-                    <div className="absolute inset-0 bg-gradient-to-tr from-cyan-950 via-slate-900 to-blue-900 opacity-95 flex items-center justify-center p-3 text-center border-2 border-dashed border-cyan-400/50">
-                      <div>
-                        <div className="w-9 h-9 rounded-full bg-cyan-500/20 text-cyan-300 flex items-center justify-center mx-auto mb-1 border border-cyan-400/30">
-                          <Play size={16} className="ml-0.5 fill-cyan-400" />
-                        </div>
-                        <p className="text-[11px] font-semibold text-cyan-200">Video phụ (Meme / Gameplay)</p>
-                        <p className="text-[10px] text-cyan-300/80 mt-0.5">
-                          {subVideoFolder ? (subVideoInfo.exists ? 'Đang chuẩn bị video...' : '⚠ Chưa thấy file video') : 'Bấm "Chọn thư mục" ở bên trái'}
-                        </p>
+                    <div className="absolute inset-0 bg-gradient-to-tr from-cyan-950 via-slate-900 to-blue-900 opacity-95 flex flex-col items-center justify-center p-3 text-center border-2 border-dashed border-cyan-400/50">
+                      <div className="w-8 h-8 rounded-full bg-cyan-500/20 text-cyan-300 flex items-center justify-center mx-auto mb-1 border border-cyan-400/30">
+                        <Play size={14} className="ml-0.5 fill-cyan-400" />
+                      </div>
+                      <p className="text-[11px] font-semibold text-cyan-200">Video phụ (Meme / Gameplay)</p>
+                      <p className="text-[10px] text-cyan-300/80 mt-0.5 mb-2">
+                        {subVideoFolder ? (subVideoInfo.exists ? 'Đang tải video...' : '⚠ Đường dẫn không tồn tại') : 'Chọn video phụ để ghép vào khung này'}
+                      </p>
+                      <div className="flex items-center gap-1.5" onClick={(e) => e.stopPropagation()}>
+                        <button
+                          type="button"
+                          onClick={handleBrowseSubVideoFile}
+                          className="px-2 py-1 bg-cyan-600 hover:bg-cyan-500 text-white rounded-lg text-[10px] font-medium shadow flex items-center gap-1 cursor-pointer transition active:scale-95"
+                        >
+                          <Film size={11} /> Chọn file
+                        </button>
+                        <button
+                          type="button"
+                          onClick={handleBrowseSubVideo}
+                          className="px-2 py-1 bg-[#152744] hover:bg-[#1e3860] text-cyan-200 rounded-lg text-[10px] font-medium border border-cyan-500/30 flex items-center gap-1 cursor-pointer transition active:scale-95"
+                        >
+                          <FolderOpen size={11} /> Thư mục
+                        </button>
                       </div>
                     </div>
                   )}

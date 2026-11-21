@@ -1,5 +1,5 @@
 import { Router } from 'express';
-import { exec } from 'child_process';
+import { execFile } from 'child_process';
 import fs from 'fs';
 import path from 'path';
 
@@ -8,17 +8,37 @@ const router = Router();
 const VIDEO_EXTS = new Set(['.mp4', '.mov', '.mkv', '.webm', '.avi', '.m4v']);
 const AUDIO_EXTS = new Set(['.mp3', '.wav', '.m4a', '.aac', '.ogg', '.flac']);
 
+function runPowerShellScript(psScript: string, timeoutMs = 120000): Promise<string | null> {
+  return new Promise((resolve) => {
+    const encoded = Buffer.from(psScript, 'utf16le').toString('base64');
+    execFile(
+      'powershell.exe',
+      ['-NoProfile', '-STA', '-ExecutionPolicy', 'Bypass', '-EncodedCommand', encoded],
+      { encoding: 'utf8', timeout: timeoutMs },
+      (error, stdout, stderr) => {
+        if (error) {
+          console.warn('[PowerShell Dialog] Error or dismissed:', error.message);
+          return resolve(null);
+        }
+        const lines = (stdout || '').split(/\r?\n/).map(l => l.trim()).filter(Boolean);
+        // Exclude progress lines or CLIXML
+        const validPath = lines.find(l => !l.startsWith('#<') && !l.startsWith('<') && fs.existsSync(l));
+        resolve(validPath || (lines.length > 0 ? lines[lines.length - 1] : null));
+      }
+    );
+  });
+}
+
 // POST /api/media/browse-folder - Open native Windows FolderBrowserDialog
-router.post('/browse-folder', (req, res) => {
+router.post('/browse-folder', async (req, res) => {
   const { initialPath, title } = req.body || {};
   const promptTitle = title || 'Chọn thư mục chứa Video hoặc Âm thanh';
-  
-  // Clean initialPath
+
   let cleanStartDir = '';
   if (initialPath && typeof initialPath === 'string') {
     const candidate = initialPath.trim().replace(/\//g, '\\');
     if (fs.existsSync(candidate)) {
-      cleanStartDir = candidate.replace(/'/g, "''");
+      cleanStartDir = (fs.statSync(candidate).isDirectory() ? candidate : path.dirname(candidate)).replace(/'/g, "''");
     }
   }
 
@@ -44,37 +64,91 @@ $topForm.Dispose()
 $dialog.Dispose()
 `.trim();
 
-  const command = `powershell -NoProfile -ExecutionPolicy Bypass -Command "${psScript.replace(/"/g, '`"')}"`;
-
-  exec(command, { encoding: 'utf8', timeout: 90000 }, (error, stdout, stderr) => {
-    if (error) {
-      console.warn('[browse-folder] Dialog dismissed or error:', error.message);
-      return res.json({ success: true, path: null });
-    }
-    const selected = stdout ? stdout.trim() : null;
-    console.log('[browse-folder] Selected path:', selected);
-    res.json({ success: true, path: selected || null });
-  });
+  const selected = await runPowerShellScript(psScript);
+  console.log('[browse-folder] Selected path:', selected);
+  res.json({ success: true, path: selected || null });
 });
 
-// GET /api/media/scan-folder - Scan directory for available video and audio files
+// POST /api/media/browse-file - Open native Windows OpenFileDialog for single video or audio file
+router.post('/browse-file', async (req, res) => {
+  const { initialPath, title, fileType } = req.body || {};
+  const promptTitle = title || 'Chọn file Video hoặc Âm thanh';
+  const isVideo = fileType !== 'audio';
+
+  let cleanStartDir = '';
+  if (initialPath && typeof initialPath === 'string') {
+    const candidate = initialPath.trim().replace(/\//g, '\\');
+    if (fs.existsSync(candidate)) {
+      cleanStartDir = (fs.statSync(candidate).isDirectory() ? candidate : path.dirname(candidate)).replace(/'/g, "''");
+    }
+  }
+
+  const filterStr = isVideo
+    ? 'Video files (*.mp4;*.mov;*.webm;*.mkv;*.avi)|*.mp4;*.mov;*.webm;*.mkv;*.avi|All files (*.*)|*.*'
+    : 'Audio files (*.mp3;*.wav;*.m4a;*.aac;*.flac)|*.mp3;*.wav;*.m4a;*.aac;*.flac|All files (*.*)|*.*';
+
+  const psScript = `
+[Console]::OutputEncoding = [System.Text.Encoding]::UTF8
+Add-Type -AssemblyName System.Windows.Forms
+$dialog = New-Object System.Windows.Forms.OpenFileDialog
+$dialog.Title = '${promptTitle.replace(/'/g, "''")}'
+$dialog.Filter = '${filterStr}'
+if ('${cleanStartDir}') {
+    $dialog.InitialDirectory = '${cleanStartDir}'
+}
+$topForm = New-Object System.Windows.Forms.Form
+$topForm.TopMost = $true
+$topForm.WindowState = [System.Windows.Forms.FormWindowState]::Minimized
+$topForm.Show()
+$topForm.WindowState = [System.Windows.Forms.FormWindowState]::Normal
+$topForm.BringToFront()
+if ($dialog.ShowDialog($topForm) -eq [System.Windows.Forms.DialogResult]::OK) {
+    Write-Output $dialog.FileName
+}
+$topForm.Dispose()
+$dialog.Dispose()
+`.trim();
+
+  const selected = await runPowerShellScript(psScript);
+  console.log('[browse-file] Selected path:', selected);
+  res.json({ success: true, path: selected || null });
+});
+
+// GET /api/media/scan-folder - Scan directory OR single file for available video and audio files
 router.get('/scan-folder', (req, res) => {
   try {
     const rawFolder = req.query.folder as string;
     if (!rawFolder) {
-      return res.json({ success: true, exists: false, videoCount: 0, audioCount: 0, files: [] });
+      return res.json({ success: true, exists: false, isFile: false, videoCount: 0, audioCount: 0, files: [] });
     }
 
     const folderPath = path.normalize(rawFolder.trim());
     if (!fs.existsSync(folderPath)) {
-      return res.json({ success: true, exists: false, path: folderPath, videoCount: 0, audioCount: 0, files: [] });
+      return res.json({ success: true, exists: false, isFile: false, path: folderPath, videoCount: 0, audioCount: 0, files: [] });
     }
 
     const stats = fs.statSync(folderPath);
-    if (!stats.isDirectory()) {
-      return res.json({ success: true, exists: false, path: folderPath, error: 'Đường dẫn không phải thư mục' });
+
+    // If it's a direct file
+    if (stats.isFile()) {
+      const ext = path.extname(folderPath).toLowerCase();
+      const isVideo = VIDEO_EXTS.has(ext);
+      const isAudio = AUDIO_EXTS.has(ext);
+      const fileName = path.basename(folderPath);
+
+      return res.json({
+        success: true,
+        exists: true,
+        isFile: true,
+        path: folderPath,
+        videoCount: isVideo ? 1 : 0,
+        audioCount: isAudio ? 1 : 0,
+        videoFiles: isVideo ? [fileName] : [],
+        audioFiles: isAudio ? [fileName] : []
+      });
     }
 
+    // If it's a directory
     const allFiles = fs.readdirSync(folderPath);
     const videoFiles = allFiles.filter(f => VIDEO_EXTS.has(path.extname(f).toLowerCase()));
     const audioFiles = allFiles.filter(f => AUDIO_EXTS.has(path.extname(f).toLowerCase()));
@@ -82,6 +156,7 @@ router.get('/scan-folder', (req, res) => {
     res.json({
       success: true,
       exists: true,
+      isFile: false,
       path: folderPath,
       videoCount: videoFiles.length,
       audioCount: audioFiles.length,
@@ -141,7 +216,6 @@ router.get('/stream-local', (req, res) => {
     const range = req.headers.range;
 
     if (range) {
-      // Parse Range header (e.g. "bytes=0-")
       const parts = range.replace(/bytes=/, '').split('-');
       const start = parseInt(parts[0], 10);
       const end = parts[1] ? parseInt(parts[1], 10) : fileSize - 1;
