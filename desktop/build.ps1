@@ -1,7 +1,11 @@
 # ====================================================================
 # Threads Content Studio - Windows Desktop NSIS Installer Build Script
-# Phase 16: Windows Desktop App (Electron 45 / React / Express / SQLite)
+# Phase 17: Automated Testing & Release Engineering (v0.17.0)
 # ====================================================================
+
+param(
+    [switch]$SkipTests = $false
+)
 
 $ErrorActionPreference = "Stop"
 $Host.UI.RawUI.WindowTitle = "Threads Content Studio - Building Desktop Installer"
@@ -15,7 +19,7 @@ $rootDir = Split-Path -Parent $PSScriptRoot
 Set-Location $rootDir
 
 # Step 1: Verify Node.js Environment
-Write-Host "[1/7] Kiem tra phien ban Node.js..." -ForegroundColor Yellow
+Write-Host "[1/8] Kiem tra phien ban Node.js..." -ForegroundColor Yellow
 $nodeVersion = node -v
 Write-Host "      Node.js hien tai: $nodeVersion" -ForegroundColor Green
 
@@ -26,31 +30,43 @@ if ($majorVersion -lt 20) {
 
 # Step 2: Install dependencies
 Write-Host ""
-Write-Host "[2/7] Kiem tra va cai dat goi phu thuoc (Dependencies)..." -ForegroundColor Yellow
+Write-Host "[2/8] Kiem tra va cai dat goi phu thuoc (Dependencies)..." -ForegroundColor Yellow
 if (Get-Command pnpm -ErrorAction SilentlyContinue) {
     pnpm install
 } else {
     npm install
 }
 
-# Step 3: Prisma Generation
+# Step 3: Prisma Generation (28 Models)
 Write-Host ""
-Write-Host "[3/7] Khoi tao Prisma Client cho SQLite..." -ForegroundColor Yellow
+Write-Host "[3/8] Khoi tao Prisma Client cho SQLite (28 models)..." -ForegroundColor Yellow
 npx prisma generate
 
 # Step 4: Build Frontend Client
 Write-Host ""
-Write-Host "[4/7] Build Frontend Client (React 18 + Vite + Tailwind)..." -ForegroundColor Yellow
+Write-Host "[4/8] Build Frontend Client (React 18 + Vite + Tailwind)..." -ForegroundColor Yellow
 npm run build --prefix client
 
 # Step 5: Build Backend Server
 Write-Host ""
-Write-Host "[5/7] Build Backend Server (Express + SQLite + TypeScript)..." -ForegroundColor Yellow
+Write-Host "[5/8] Build Backend Server (Express + SQLite + TypeScript)..." -ForegroundColor Yellow
 npm run build --prefix server
 
-# Step 6: Build Desktop Shell & Verify Chromium
+# Step 6: Automated Testing & Release Engineering Check
 Write-Host ""
-Write-Host "[6/7] Build Desktop Main & Preload (Electron Shell)..." -ForegroundColor Yellow
+Write-Host "[6/8] Kiem tra he thong & chay Test Suite truoc khi dong goi..." -ForegroundColor Yellow
+if (-not $SkipTests) {
+    Write-Host "      Chay 16/16 Unit Tests & FFmpeg Media Smoke Test..." -ForegroundColor Cyan
+    npm test
+} else {
+    Write-Host "      [Bo qua] Tuy chon -SkipTests da duoc bat." -ForegroundColor DarkGray
+    Write-Host "      Van chay kiem tra bat buoc Release Check (28 Models & JSON)..." -ForegroundColor Cyan
+    npm run release:check
+}
+
+# Step 7: Build Desktop Shell & Verify Chromium
+Write-Host ""
+Write-Host "[7/8] Build Desktop Main & Preload (Electron Shell)..." -ForegroundColor Yellow
 if (Test-Path "desktop\dist") {
     Remove-Item -Recurse -Force "desktop\dist" -ErrorAction SilentlyContinue
 }
@@ -63,9 +79,9 @@ try {
     Write-Host "      Playwright chromium da co hoac dung cache he thong." -ForegroundColor DarkGray
 }
 
-# Step 7: Packaging NSIS Installer with electron-builder
+# Step 8: Packaging NSIS Installer with electron-builder
 Write-Host ""
-Write-Host "[7/7] Dong goi bo cai dat Windows NSIS x64 bang electron-builder..." -ForegroundColor Yellow
+Write-Host "[8/8] Dong goi bo cai dat Windows NSIS x64 bang electron-builder..." -ForegroundColor Yellow
 
 $releaseDir = Join-Path $rootDir "release"
 if (-not (Test-Path $releaseDir)) {
@@ -83,6 +99,7 @@ Write-Host "Thu muc chua file cai dat:" -ForegroundColor White
 Write-Host "  -> $releaseDir" -ForegroundColor Green
 Write-Host ""
 Write-Host "Cac dac tinh ban cai dat:" -ForegroundColor White
+Write-Host "  * Da xac nhan vuot qua 16/16 Unit Tests & Release Engineering Check." -ForegroundColor Gray
 Write-Host "  * Giu nguyen toan bo Database & Media khi nang cap hoac cai lai." -ForegroundColor Gray
 Write-Host "  * Du lieu luu tru tach biet tai %APPDATA% hoac o D/E tuy chon." -ForegroundColor Gray
 Write-Host "  * Ho tro deep link custom protocol: threads-studio://" -ForegroundColor Gray

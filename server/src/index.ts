@@ -93,10 +93,12 @@ if (fs.existsSync(clientDistDir)) {
   });
 }
 
-app.listen(PORT, '127.0.0.1', () => {
-  console.log(`[Threads Content Studio Server] Running on http://127.0.0.1:${PORT}`);
-  // Start Phase 8 background sync scheduler
-  ThreadsApiService.initScheduledSync();
-  // Start Phase 9 background discovery cron
-  DiscoveryService.initDiscoveryCron();
-});
+if (process.env.NODE_ENV !== 'test') {
+  app.listen(PORT, '127.0.0.1', () => {
+    console.log(`[Threads Content Studio Server] Running on http://127.0.0.1:${PORT}`);
+    // Start Phase 8 background sync scheduler
+    ThreadsApiService.initScheduledSync();
+    // Start Phase 9 background discovery cron
+    DiscoveryService.initDiscoveryCron();
+  });
+}

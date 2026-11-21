@@ -1,0 +1,60 @@
+name: Release Windows Desktop Installer
+
+on:
+  push:
+    tags:
+      - 'v*'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  build-windows-installer:
+    runs-on: windows-latest
+
+    steps:
+    - name: Checkout Source Code
+      uses: actions/checkout@v4
+
+    - name: Setup Node.js 20.x
+      uses: actions/setup-node@v4
+      with:
+        node-version: 20.x
+        cache: 'npm'
+
+    - name: Setup FFmpeg
+      uses: FedericoCarboni/setup-ffmpeg@v3
+      with:
+        ffmpeg-version: release
+
+    - name: Install Project Dependencies
+      run: npm install
+
+    - name: Generate Prisma Client
+      run: npx prisma generate
+
+    - name: Build Frontend & Backend
+      run: |
+        npm run build --prefix client
+        npm run build --prefix server
+
+    - name: Run Complete Test Suite
+      run: npm test
+
+    - name: Build Desktop Main & Preload
+      run: npx tsc --project desktop
+
+    - name: Build Windows NSIS x64 Installer
+      run: npx electron-builder --config desktop/electron-builder.json --win nsis --x64
+      env:
+        GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+    - name: Upload Release Artifacts (.exe)
+      uses: softprops/action-gh-release@v2
+      if: startsWith(github.ref, 'refs/tags/')
+      with:
+        files: release/*.exe
+        draft: false
+        prerelease: false
+        generate_release_notes: true

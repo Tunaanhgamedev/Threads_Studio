@@ -253,3 +253,187 @@ model BackupSchedule {
   nextRunAt     DateTime?
   updatedAt     DateTime  @updatedAt
 }
+
+model Screenshot {
+  id          String   @id
+  projectId   String
+  type        String
+  refId       String
+  filePath    String
+  fileUrl     String
+  theme       String   @default("light")
+  aspectRatio String   @default("9:16")
+  width       Int
+  height      Int
+  createdAt   DateTime @default(now())
+}
+
+model Audio {
+  id        String   @id
+  projectId String
+  sceneId   String
+  filePath  String
+  fileUrl   String
+  voice     String
+  duration  Float
+  text      String
+  createdAt DateTime @default(now())
+}
+
+model BatchJob {
+  id             String      @id
+  title          String
+  totalItems     Int         @default(0)
+  completedItems Int         @default(0)
+  failedItems    Int         @default(0)
+  status         String      @default("queued")
+  config         String
+  createdAt      DateTime    @default(now())
+  updatedAt      DateTime    @updatedAt
+  items          BatchItem[]
+}
+
+model BatchItem {
+  id             String    @id
+  batchId        String
+  batch          BatchJob  @relation(fields: [batchId], references: [id], onDelete: Cascade)
+  threadsUrl     String
+  projectId      String?
+  status         String    @default("pending")
+  currentStep    String    @default("Chờ xử lý")
+  progress       Int       @default(0)
+  error          String?
+  outputVideoUrl String?
+  createdAt      DateTime  @default(now())
+  completedAt    DateTime?
+}
+
+model ThreadsAccount {
+  id               String              @id
+  username         String
+  displayName      String?
+  threadsUserId    String?
+  avatarUrl        String?
+  accessToken      String
+  tokenType        String?             @default("bearer")
+  expiresAt        DateTime?
+  isActive         Boolean             @default(true)
+  autoSync         Boolean             @default(true)
+  syncIntervalMins Int                 @default(60)
+  lastSyncedAt     DateTime?
+  createdAt        DateTime            @default(now())
+  updatedAt        DateTime            @updatedAt
+  posts            ThreadsSyncedPost[]
+}
+
+model ThreadsSyncedPost {
+  id             String          @id
+  accountId      String?
+  account        ThreadsAccount? @relation(fields: [accountId], references: [id], onDelete: SetNull)
+  threadsId      String          @unique
+  permalink      String
+  authorUsername String
+  authorName     String?
+  authorAvatar   String?
+  text           String
+  mediaType      String?
+  mediaUrl       String?
+  likesCount     Int             @default(0)
+  repliesCount   Int             @default(0)
+  rawReplies     String?
+  timestamp      String
+  status         String?         @default("synced")
+  projectId      String?
+  createdAt      DateTime        @default(now())
+}
+
+model MonitoredSource {
+  id                    String           @id
+  username              String           @unique
+  displayName           String?
+  avatarUrl             String?
+  bio                   String?
+  followerCount         Int              @default(0)
+  isActive              Boolean          @default(true)
+  minLikesFilter        Int              @default(50)
+  autoQueueToAutomation Boolean          @default(false)
+  lastScrapedAt         DateTime?
+  totalPostsDiscovered  Int              @default(0)
+  sourceType            String           @default("PROFILE")
+  target                String?
+  searchMode            String           @default("TOP")
+  mediaType             String           @default("ALL")
+  limitPerSync          Int              @default(20)
+  syncIntervalMinutes   Int              @default(60)
+  fetchReplies          Boolean          @default(true)
+  nextSyncAt            DateTime?
+  createdAt             DateTime         @default(now())
+  updatedAt             DateTime         @updatedAt
+  discoveredPosts       DiscoveredPost[]
+}
+
+model DiscoveredPost {
+  id             String           @id
+  sourceId       String?
+  source         MonitoredSource? @relation(fields: [sourceId], references: [id], onDelete: SetNull)
+  threadsId      String
+  permalink      String           @unique
+  authorUsername String
+  authorName     String?
+  authorAvatar   String?
+  content        String
+  mediaUrl       String?
+  likesCount     Int              @default(0)
+  repliesCount   Int              @default(0)
+  rawComments    String?
+  duplicateHash  String
+  status         String?          @default("discovered")
+  projectId      String?
+  mediaType      String?          @default("TEXT")
+  batchId        String?
+  createdAt      DateTime         @default(now())
+}
+
+model DiscoverySyncLog {
+  id              String   @id
+  sourceId        String
+  sourceTarget    String
+  sourceType      String
+  postsFound      Int      @default(0)
+  newPostsSaved   Int      @default(0)
+  queuedToBatch   Int      @default(0)
+  status          String
+  message         String?
+  createdAt       DateTime @default(now())
+}
+
+model DiscoveryRateLimit {
+  type        String   @id
+  count24h    Int      @default(0)
+  windowStart DateTime
+}
+
+model DesktopService {
+  name        String   @id
+  port        Int
+  status      String   @default("stopped") // running, stopped
+  pid         Int?
+  lastStarted DateTime?
+  updatedAt   DateTime @updatedAt
+}
+
+model DesktopConfig {
+  key       String   @id
+  value     String
+  updatedAt DateTime @updatedAt
+}
+
+model ReleaseArtifact {
+  id          String   @id
+  version     String
+  platform    String   @default("win32-x64")
+  installer   String
+  fileSize    Int
+  sha256      String
+  buildDate   DateTime @default(now())
+}

@@ -69,7 +69,7 @@ export class ReliabilityService {
       masked = masked.replace(/(client_secret=)[^&\s]+/gi, '$1[REDACTED]');
       masked = masked.replace(/(client_id=)[^&\s]+/gi, '$1[REDACTED]');
       // Mask Google API keys (AIza...)
-      masked = masked.replace(/AIza[0-9A-Za-z\-_]{35}/g, 'AIza...[REDACTED]');
+      masked = masked.replace(/AIza[0-9A-Za-z\-_]{30,45}/g, 'AIza...[REDACTED]');
       // Mask environment variables if present
       const envSecrets = [
         process.env.ENCRYPTION_KEY,
@@ -954,6 +954,9 @@ export class ReliabilityService {
     this.scheduleTimer = setInterval(() => {
       this.checkAndRunScheduledBackup();
     }, 5 * 60 * 1000);
+    if (this.scheduleTimer.unref) {
+      this.scheduleTimer.unref();
+    }
   }
 
   private async checkAndRunScheduledBackup(): Promise<void> {

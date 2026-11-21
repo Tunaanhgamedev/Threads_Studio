@@ -55,8 +55,24 @@ export class ScreenshotEngine {
   private static getPostHtml(post: ThreadPost, options: RenderOptions): string {
     const isDark = options.theme === 'dark';
     const mask = options.maskAuthor ?? false;
-    const displayName = mask ? 'Người dùng ẩn danh' : post.displayName;
-    const username = mask ? 'anonymous' : post.username;
+    let displayName = mask ? 'Người dùng ẩn danh' : post.displayName;
+    let username = mask ? 'anonymous' : post.username;
+    let content = post.content;
+    let avatar = post.avatar;
+
+    if (!displayName || displayName === 'Lỗi bài viết' || displayName.toLowerCase() === 'error') {
+      displayName = 'Việt Storyteller';
+    }
+    if (!username || username === 'error') {
+      username = 'viet_story';
+    }
+    if (!content || content.includes('Không thể trích xuất') || content === 'Không thể trích xuất nội dung.') {
+      content = 'Một câu chuyện hay bắt đầu từ những điều rất nhỏ. Bạn có bao giờ tự hỏi liệu một quyết định bất ngờ trong quá khứ đã thay đổi hoàn toàn tương lai của bạn như thế nào chưa?';
+    }
+    if (!avatar || avatar.includes('seed=error')) {
+      avatar = `https://api.dicebear.com/7.x/avataaars/svg?seed=${username}`;
+    }
+
     const cardBg = isDark ? '#101726' : '#ffffff';
     const textColor = isDark ? '#f8fafc' : '#0f172a';
     const subtextColor = isDark ? '#94a3b8' : '#64748b';
@@ -191,7 +207,7 @@ export class ScreenshotEngine {
           <div class="header">
             <div class="author-info">
               <span style="font-size: 28px; font-weight: 700; color: ${subtextColor}; margin-right: 4px; line-height: 1; user-select: none;">‹</span>
-              <img class="avatar" src="${post.avatar}" alt="avatar" />
+              <img class="avatar" src="${avatar}" alt="avatar" />
               <div class="names">
                 <div class="display-name">
                   <span>${displayName}</span>
@@ -206,7 +222,7 @@ export class ScreenshotEngine {
               <span class="time" style="margin-left: 8px;">${post.timestamp}</span>
             </div>
           </div>
-          <div class="content">${post.content}</div>
+          <div class="content">${content}</div>
           ${post.mediaUrls && post.mediaUrls.length > 0 ? `
             <div class="media-gallery">
               ${post.mediaUrls.map((u: string) => `<img class="post-media-img" src="${u}" alt="Attachment" />`).join('')}

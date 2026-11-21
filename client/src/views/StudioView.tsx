@@ -1488,7 +1488,13 @@ export const StudioView: React.FC<StudioViewProps> = ({
                   <div className="flex items-center gap-2">
                     <span className="text-slate-400 font-bold text-sm select-none mr-0.5 hover:text-slate-600 transition">‹</span>
                     <img 
-                      src={isViewingPost ? project.post.avatar : currentComment?.avatar} 
+                      src={
+                        isViewingPost 
+                          ? (project.post.avatar && !project.post.avatar.includes('seed=error') 
+                              ? project.post.avatar 
+                              : `https://api.dicebear.com/7.x/avataaars/svg?seed=${authorUsername || 'viet_story'}`) 
+                          : (currentComment?.avatar || `https://api.dicebear.com/7.x/avataaars/svg?seed=${currentComment?.username || 'user'}`)
+                      } 
                       alt="Avatar"
                       className="w-8 h-8 rounded-full border border-slate-200/80 object-cover shadow-sm ring-1 ring-slate-100" 
                     />
