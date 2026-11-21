@@ -1,5 +1,6 @@
 import { Router, Request, Response } from 'express';
 import { ReliabilityService } from '../services/reliabilityService.js';
+import { VideoService } from '../services/videoService.js';
 
 export const reliabilityRouter = Router();
 const service = ReliabilityService.getInstance();
@@ -180,6 +181,118 @@ reliabilityRouter.get('/logs', (req: Request, res: Response) => {
     res.status(500).json({
       success: false,
       error: err.message || 'Lỗi khi đọc nhật ký hệ thống'
+    });
+  }
+});
+
+// ==========================================
+// 10. Phase 18: Render Performance & Scene Caching
+// ==========================================
+
+// GET /api/reliability/performance
+reliabilityRouter.get('/performance', async (req: Request, res: Response) => {
+  try {
+    const usage = await service.getResourceUsage();
+    res.json({
+      success: true,
+      data: usage
+    });
+  } catch (err: any) {
+    res.status(500).json({
+      success: false,
+      error: err.message || 'Lỗi khi đọc thông số hiệu năng hệ thống'
+    });
+  }
+});
+
+// POST /api/reliability/performance
+reliabilityRouter.post('/performance', (req: Request, res: Response) => {
+  try {
+    const updated = service.updatePerformanceConfig(req.body);
+    res.json({
+      success: true,
+      data: updated
+    });
+  } catch (err: any) {
+    res.status(500).json({
+      success: false,
+      error: err.message || 'Lỗi khi cập nhật cấu hình hiệu năng render'
+    });
+  }
+});
+
+// POST /api/reliability/render/pause
+reliabilityRouter.post('/render/pause', (req: Request, res: Response) => {
+  try {
+    const { projectId } = req.body;
+    if (!projectId) {
+      return res.status(400).json({ success: false, error: 'Thiếu projectId' });
+    }
+    const paused = VideoService.pauseRender(projectId);
+    res.json({
+      success: true,
+      data: { paused, message: paused ? 'Đã tạm dừng render thành công.' : 'Không có tiến trình render nào đang chạy cho dự án này.' }
+    });
+  } catch (err: any) {
+    res.status(500).json({
+      success: false,
+      error: err.message || 'Lỗi khi tạm dừng render'
+    });
+  }
+});
+
+// POST /api/reliability/render/resume
+reliabilityRouter.post('/render/resume', (req: Request, res: Response) => {
+  try {
+    const { projectId } = req.body;
+    if (!projectId) {
+      return res.status(400).json({ success: false, error: 'Thiếu projectId' });
+    }
+    const resumedJob = VideoService.resumeRender(projectId);
+    if (!resumedJob) {
+      return res.status(400).json({ success: false, error: 'Không tìm thấy job tạm dừng để tiếp tục render.' });
+    }
+    res.json({
+      success: true,
+      data: resumedJob
+    });
+  } catch (err: any) {
+    res.status(500).json({
+      success: false,
+      error: err.message || 'Lỗi khi tiếp tục render'
+    });
+  }
+});
+
+// GET /api/reliability/render/cache
+reliabilityRouter.get('/render/cache', (req: Request, res: Response) => {
+  try {
+    const stats = service.getSceneCacheStats();
+    res.json({
+      success: true,
+      data: stats
+    });
+  } catch (err: any) {
+    res.status(500).json({
+      success: false,
+      error: err.message || 'Lỗi khi kiểm tra cache phân cảnh'
+    });
+  }
+});
+
+// DELETE /api/reliability/render/cache
+reliabilityRouter.delete('/render/cache', (req: Request, res: Response) => {
+  try {
+    const force = req.query.force === 'true';
+    const result = service.cleanSceneCache(force);
+    res.json({
+      success: true,
+      data: result
+    });
+  } catch (err: any) {
+    res.status(500).json({
+      success: false,
+      error: err.message || 'Lỗi khi dọn dẹp cache phân cảnh'
     });
   }
 });

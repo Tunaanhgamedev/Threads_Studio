@@ -2,6 +2,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import { 
   Play, 
   Square, 
+  Pause,
   Volume2, 
   FolderOpen, 
   Clipboard, 
@@ -102,6 +103,7 @@ export const StudioView: React.FC<StudioViewProps> = ({
 
   // Live render state
   const [isRendering, setIsRendering] = useState(project.status === 'rendering');
+  const [isPaused, setIsPaused] = useState(project.status === 'paused' || project.lastRenderJob?.status === 'paused');
   const [renderProgress, setRenderProgress] = useState(project.lastRenderJob?.progress || 0);
   const [renderStep, setRenderStep] = useState(project.lastRenderJob?.currentStep || 'Sẵn sàng');
   const [logs, setLogs] = useState<string[]>(project.lastRenderJob?.logs || [
@@ -368,6 +370,9 @@ export const StudioView: React.FC<StudioViewProps> = ({
       setRenderStep(project.lastRenderJob.currentStep);
       setLogs(project.lastRenderJob.logs);
       setIsRendering(project.lastRenderJob.status === 'rendering');
+      setIsPaused(project.lastRenderJob.status === 'paused');
+    } else {
+      setIsPaused(project.status === 'paused');
     }
   }, [project.id]);
 
@@ -385,11 +390,16 @@ export const StudioView: React.FC<StudioViewProps> = ({
 
             if (status.status === 'completed') {
               setIsRendering(false);
+              setIsPaused(false);
               confetti({ particleCount: 80, spread: 70, origin: { y: 0.6 } });
               const updated = await api.getProject(project.id);
               onUpdateProject(updated);
             } else if (status.status === 'failed') {
               setIsRendering(false);
+              setIsPaused(false);
+            } else if (status.status === 'paused') {
+              setIsRendering(false);
+              setIsPaused(true);
             }
           }
         } catch (err) {
@@ -624,6 +634,7 @@ export const StudioView: React.FC<StudioViewProps> = ({
   const handleStartRender = async () => {
     await saveConfig();
     setIsRendering(true);
+    setIsPaused(false);
     setRenderProgress(5);
     setRenderStep('Đang khởi động tiến trình render...');
     try {
@@ -635,11 +646,40 @@ export const StudioView: React.FC<StudioViewProps> = ({
     }
   };
 
+  // Pause Render
+  const handlePauseRender = async () => {
+    try {
+      await api.pauseRenderJob(project.id);
+      setIsRendering(false);
+      setIsPaused(true);
+      setRenderStep('Đã tạm dừng render');
+      setLogs(prev => [...prev, `[${new Date().toLocaleTimeString()}] Đã gửi tín hiệu tạm dừng render.`]);
+    } catch (err: any) {
+      alert('Lỗi tạm dừng render: ' + err.message);
+    }
+  };
+
+  // Resume Render
+  const handleResumeRender = async () => {
+    setIsRendering(true);
+    setIsPaused(false);
+    setRenderStep('Đang khôi phục tiến trình render...');
+    try {
+      const job = await api.resumeRenderJob(project.id);
+      setLogs(job.logs || []);
+    } catch (err: any) {
+      alert('Lỗi tiếp tục render: ' + err.message);
+      setIsRendering(false);
+      setIsPaused(true);
+    }
+  };
+
   // Stop Render
   const handleStopRender = async () => {
     try {
       await api.stopRender(project.id);
       setIsRendering(false);
+      setIsPaused(false);
       setRenderStep('Đã dừng');
       setLogs(prev => [...prev, `[${new Date().toLocaleTimeString()}] Tiến trình đã bị hủy.`]);
     } catch (err) {
@@ -1928,36 +1968,58 @@ export const StudioView: React.FC<StudioViewProps> = ({
             {/* Action Buttons: Tạo video & Dừng */}
             <div className="space-y-2">
               <div className="grid grid-cols-12 gap-2">
-                <button
-                  onClick={handleStartRender}
-                  disabled={isRendering}
-                  className={`col-span-8 py-3 px-4 rounded-xl text-sm font-bold shadow-lg transition flex items-center justify-center gap-2 ${
-                    isRendering
-                      ? 'bg-blue-600/50 text-blue-200 cursor-not-allowed'
-                      : 'bg-blue-600 hover:bg-blue-500 text-white shadow-blue-600/30'
-                  }`}
-                >
-                  {isRendering ? (
-                    <>
-                      <RefreshCw size={16} className="animate-spin" />
-                      <span>Đang render...</span>
-                    </>
-                  ) : (
-                    <>
+                {isPaused ? (
+                  <>
+                    <button
+                      onClick={handleResumeRender}
+                      className="col-span-8 py-3 px-4 rounded-xl text-sm font-bold shadow-lg transition flex items-center justify-center gap-2 bg-emerald-600 hover:bg-emerald-500 text-white shadow-emerald-600/30 cursor-pointer"
+                    >
+                      <Play size={16} className="fill-white" />
+                      <span>Tiếp tục render</span>
+                    </button>
+                    <button
+                      onClick={handleStopRender}
+                      className="col-span-4 py-3 px-3 rounded-xl text-xs font-semibold bg-[#1a2b47] hover:bg-[#233a61] text-rose-300 border border-rose-900/40 transition flex items-center justify-center gap-1.5 cursor-pointer"
+                    >
+                      <Square size={13} className="fill-rose-400" />
+                      <span>Hủy</span>
+                    </button>
+                  </>
+                ) : isRendering ? (
+                  <>
+                    <button
+                      onClick={handlePauseRender}
+                      className="col-span-6 py-3 px-3 rounded-xl text-xs font-bold shadow-lg transition flex items-center justify-center gap-1.5 bg-amber-600 hover:bg-amber-500 text-white shadow-amber-600/30 cursor-pointer"
+                    >
+                      <Pause size={14} className="fill-white" />
+                      <span>Tạm dừng</span>
+                    </button>
+                    <button
+                      onClick={handleStopRender}
+                      className="col-span-6 py-3 px-3 rounded-xl text-xs font-semibold bg-rose-950/40 hover:bg-rose-900/50 text-rose-300 border border-rose-800/50 transition flex items-center justify-center gap-1.5 cursor-pointer"
+                    >
+                      <Square size={13} className="fill-rose-400" />
+                      <span>Dừng render</span>
+                    </button>
+                  </>
+                ) : (
+                  <>
+                    <button
+                      onClick={handleStartRender}
+                      className="col-span-8 py-3 px-4 rounded-xl text-sm font-bold shadow-lg transition flex items-center justify-center gap-2 bg-blue-600 hover:bg-blue-500 text-white shadow-blue-600/30 cursor-pointer"
+                    >
                       <Play size={16} className="fill-white" />
                       <span>Tạo video</span>
-                    </>
-                  )}
-                </button>
-
-                <button
-                  onClick={handleStopRender}
-                  disabled={!isRendering}
-                  className="col-span-4 py-3 px-3 rounded-xl text-xs font-semibold bg-[#1a2b47] hover:bg-[#233a61] text-slate-300 border border-[#243e69] transition disabled:opacity-40 disabled:cursor-not-allowed flex items-center justify-center gap-1.5"
-                >
-                  <Square size={13} className="fill-slate-400" />
-                  <span>Dừng</span>
-                </button>
+                    </button>
+                    <button
+                      disabled
+                      className="col-span-4 py-3 px-3 rounded-xl text-xs font-semibold bg-[#1a2b47] text-slate-500 border border-[#243e69] opacity-40 cursor-not-allowed flex items-center justify-center gap-1.5"
+                    >
+                      <Square size={13} className="fill-slate-600" />
+                      <span>Dừng</span>
+                    </button>
+                  </>
+                )}
               </div>
 
               {/* Chụp thử ảnh Button */}

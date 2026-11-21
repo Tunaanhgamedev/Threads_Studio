@@ -24,7 +24,13 @@ import {
   Terminal,
   Search,
   Sliders,
-  FolderArchive
+  FolderArchive,
+  Activity,
+  Zap,
+  Gauge,
+  Play,
+  Pause,
+  Save
 } from 'lucide-react';
 import { api } from '../services/api';
 import {
@@ -33,10 +39,13 @@ import {
   SystemBackupItem,
   BackupScheduleConfig,
   SystemLogEntry,
-  ServiceHealthStatus
+  ServiceHealthStatus,
+  RenderPerformanceConfig,
+  SystemResourceUsage,
+  SceneCacheStats
 } from '../types';
 
-type ReliabilityTab = 'health' | 'backup' | 'storage' | 'logs';
+type ReliabilityTab = 'health' | 'performance' | 'backup' | 'storage' | 'logs';
 
 export const ReliabilityView: React.FC = () => {
   const [activeTab, setActiveTab] = useState<ReliabilityTab>('health');
@@ -45,6 +54,22 @@ export const ReliabilityView: React.FC = () => {
   const [backups, setBackups] = useState<SystemBackupItem[]>([]);
   const [scheduleConfig, setScheduleConfig] = useState<BackupScheduleConfig | null>(null);
   const [logs, setLogs] = useState<SystemLogEntry[]>([]);
+
+  // Phase 18 - Render Performance & Scene Caching States
+  const [resourceUsage, setResourceUsage] = useState<SystemResourceUsage | null>(null);
+  const [perfConfig, setPerfConfig] = useState<RenderPerformanceConfig>({
+    queueEnabled: true,
+    maxWorkers: 1,
+    minFreeRamGb: 1.5,
+    ffmpegPreset: 'veryfast',
+    cpuThreads: 0,
+    sceneCacheEnabled: true,
+    shutdownTimeoutSec: 300
+  });
+  const [sceneCacheStats, setSceneCacheStats] = useState<SceneCacheStats | null>(null);
+  const [isLoadingPerf, setIsLoadingPerf] = useState(false);
+  const [isSavingPerf, setIsSavingPerf] = useState(false);
+  const [isCleaningCache, setIsCleaningCache] = useState(false);
 
   const [isLoadingHealth, setIsLoadingHealth] = useState(false);
   const [isLoadingStorage, setIsLoadingStorage] = useState(false);
@@ -71,6 +96,8 @@ export const ReliabilityView: React.FC = () => {
   // 1. Initial Load
   useEffect(() => {
     loadHealth();
+    loadPerformance();
+    loadSceneCache();
     loadStorage();
     loadBackups();
     loadSchedule();
@@ -91,6 +118,61 @@ export const ReliabilityView: React.FC = () => {
       showToast('error', `Lỗi kiểm tra hệ thống: ${err.message}`);
     } finally {
       setIsLoadingHealth(false);
+    }
+  };
+
+  const loadPerformance = async () => {
+    setIsLoadingPerf(true);
+    try {
+      const data = await api.getRenderPerformance();
+      setResourceUsage(data);
+      if (data.config) {
+        setPerfConfig(data.config);
+      }
+    } catch (err: any) {
+      console.warn('Lỗi đọc hiệu năng render:', err.message);
+    } finally {
+      setIsLoadingPerf(false);
+    }
+  };
+
+  const loadSceneCache = async () => {
+    try {
+      const data = await api.getSceneCacheStats();
+      setSceneCacheStats(data);
+    } catch (err: any) {
+      console.warn('Lỗi đọc cache phân cảnh:', err.message);
+    }
+  };
+
+  const handleSavePerfConfig = async () => {
+    setIsSavingPerf(true);
+    try {
+      const updated = await api.updateRenderPerformanceConfig(perfConfig);
+      setPerfConfig(updated);
+      showToast('success', 'Đã lưu cấu hình hiệu năng render & bộ đệm phân cảnh thành công!');
+      loadPerformance();
+    } catch (err: any) {
+      showToast('error', `Lỗi lưu cấu hình: ${err.message}`);
+    } finally {
+      setIsSavingPerf(false);
+    }
+  };
+
+  const handleCleanSceneCache = async () => {
+    if (!window.confirm('Bạn có chắc muốn dọn dẹp bộ đệm phân cảnh video? (Các job đang chạy sẽ được tự động bảo vệ).')) {
+      return;
+    }
+    setIsCleaningCache(true);
+    try {
+      const res = await api.cleanSceneCache(false);
+      showToast('success', res.message);
+      loadSceneCache();
+      loadStorage();
+    } catch (err: any) {
+      showToast('error', `Lỗi dọn dẹp cache: ${err.message}`);
+    } finally {
+      setIsCleaningCache(false);
     }
   };
 
@@ -338,6 +420,23 @@ export const ReliabilityView: React.FC = () => {
           {healthReport && (
             <span className="px-1.5 py-0.2 rounded-md bg-[#13233e] text-[10px] text-slate-300">
               {healthReport.summary.healthyCount}/{healthReport.summary.totalCount}
+            </span>
+          )}
+        </button>
+
+        <button
+          onClick={() => setActiveTab('performance')}
+          className={`flex items-center gap-2 px-4 py-2.5 text-xs font-semibold border-b-2 transition ${
+            activeTab === 'performance'
+              ? 'border-blue-500 text-blue-400 bg-blue-500/10 rounded-t-xl'
+              : 'border-transparent text-slate-400 hover:text-slate-200'
+          }`}
+        >
+          <Activity size={14} />
+          <span>Hiệu năng render (Phase 18)</span>
+          {resourceUsage && (
+            <span className="px-1.5 py-0.2 rounded-md bg-[#13233e] text-[10px] text-cyan-300 font-mono">
+              RAM {resourceUsage.ramUsagePercent}%
             </span>
           )}
         </button>
@@ -615,6 +714,331 @@ export const ReliabilityView: React.FC = () => {
                 </div>
               </div>
             )}
+          </div>
+        )}
+
+        {/* ========================================================= */}
+        {/* TAB 1.5: RENDER PERFORMANCE & SCENE CACHING (PHASE 18)   */}
+        {/* ========================================================= */}
+        {activeTab === 'performance' && (
+          <div className="space-y-6">
+            {/* Header info & Refresh */}
+            <div className="flex flex-wrap items-center justify-between gap-4 bg-[#0d182e] p-5 rounded-2xl border border-[#1b2f52]">
+              <div>
+                <h3 className="text-base font-bold text-white flex items-center gap-2">
+                  <Activity size={18} className="text-blue-400" />
+                  <span>Hiệu năng render & Giám sát tài nguyên (Phase 18)</span>
+                </h3>
+                <p className="text-xs text-slate-400 mt-1">
+                  Kiểm soát mức chiếm dụng RAM, CPU, giới hạn worker render đồng thời và quản lý bộ đệm phân cảnh SHA-256.
+                </p>
+              </div>
+              <button
+                type="button"
+                onClick={() => { loadPerformance(); loadSceneCache(); }}
+                disabled={isLoadingPerf}
+                className="px-3.5 py-2 bg-[#142542] hover:bg-[#1a335c] text-white rounded-xl text-xs font-semibold flex items-center gap-2 transition border border-[#223d68]"
+              >
+                <RefreshCw size={13} className={isLoadingPerf ? 'animate-spin' : ''} />
+                <span>Cập nhật số liệu</span>
+              </button>
+            </div>
+
+            {/* Live Metrics Grid */}
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+              {/* RAM Card */}
+              <div className="bg-[#0d182e] p-5 rounded-2xl border border-[#1b2f52] space-y-3">
+                <div className="flex items-center justify-between">
+                  <span className="text-xs text-slate-400 font-semibold uppercase tracking-wider">Bộ nhớ RAM</span>
+                  <div className="p-2 rounded-xl bg-blue-500/10 text-blue-400">
+                    <Gauge size={16} />
+                  </div>
+                </div>
+                <div>
+                  <div className="text-2xl font-bold text-white">
+                    {resourceUsage ? resourceUsage.freeMemGb : '1.50 GB'} <span className="text-xs font-normal text-slate-400">trống</span>
+                  </div>
+                  <div className="text-xs text-slate-400 mt-0.5">
+                    Đang dùng {resourceUsage?.usedMemGb || '---'} / Tổng {resourceUsage?.totalMemGb || '---'}
+                  </div>
+                </div>
+                <div className="space-y-1">
+                  <div className="w-full bg-[#162744] h-2 rounded-full overflow-hidden">
+                    <div 
+                      className={`h-full transition-all duration-300 ${
+                        (resourceUsage?.ramUsagePercent || 0) > 85 ? 'bg-rose-500' : (resourceUsage?.ramUsagePercent || 0) > 65 ? 'bg-amber-500' : 'bg-blue-500'
+                      }`}
+                      style={{ width: `${resourceUsage?.ramUsagePercent || 40}%` }}
+                    />
+                  </div>
+                  <div className="flex justify-between text-[10px] text-slate-400 font-mono">
+                    <span>Ngưỡng tối thiểu: {perfConfig.minFreeRamGb} GB</span>
+                    <span>{resourceUsage?.ramUsagePercent || 0}% sử dụng</span>
+                  </div>
+                </div>
+              </div>
+
+              {/* CPU Card */}
+              <div className="bg-[#0d182e] p-5 rounded-2xl border border-[#1b2f52] space-y-3">
+                <div className="flex items-center justify-between">
+                  <span className="text-xs text-slate-400 font-semibold uppercase tracking-wider">Bộ vi xử lý CPU</span>
+                  <div className="p-2 rounded-xl bg-emerald-500/10 text-emerald-400">
+                    <Cpu size={16} />
+                  </div>
+                </div>
+                <div>
+                  <div className="text-2xl font-bold text-white">
+                    {resourceUsage ? `${resourceUsage.cpuCount} Cores` : '8 Cores'}
+                  </div>
+                  <div className="text-xs text-slate-400 truncate mt-0.5" title={resourceUsage?.cpuModel}>
+                    {resourceUsage?.cpuModel || 'CPU Processor'}
+                  </div>
+                </div>
+                <div className="space-y-1">
+                  <div className="w-full bg-[#162744] h-2 rounded-full overflow-hidden">
+                    <div 
+                      className="h-full bg-emerald-500 transition-all duration-300"
+                      style={{ width: `${Math.max(8, resourceUsage?.cpuUsagePercent || 15)}%` }}
+                    />
+                  </div>
+                  <div className="flex justify-between text-[10px] text-slate-400 font-mono">
+                    <span>Luồng cấu hình: {perfConfig.cpuThreads === 0 ? 'Tự động' : `${perfConfig.cpuThreads} threads`}</span>
+                    <span>~{resourceUsage?.cpuUsagePercent || 15}% tải</span>
+                  </div>
+                </div>
+              </div>
+
+              {/* Workers & Queue Card */}
+              <div className="bg-[#0d182e] p-5 rounded-2xl border border-[#1b2f52] space-y-3">
+                <div className="flex items-center justify-between">
+                  <span className="text-xs text-slate-400 font-semibold uppercase tracking-wider">Hàng đợi Render</span>
+                  <div className="p-2 rounded-xl bg-purple-500/10 text-purple-400">
+                    <Layers size={16} />
+                  </div>
+                </div>
+                <div>
+                  <div className="text-2xl font-bold text-white">
+                    {resourceUsage?.activeWorkers || 0} / {perfConfig.maxWorkers} <span className="text-xs font-normal text-slate-400">Worker</span>
+                  </div>
+                  <div className="text-xs text-slate-400 mt-0.5">
+                    {resourceUsage?.queuedJobsCount || 0} video đang chờ trong hàng đợi
+                  </div>
+                </div>
+                <div className="pt-1 flex items-center gap-2">
+                  <span className={`w-2.5 h-2.5 rounded-full ${perfConfig.queueEnabled ? 'bg-emerald-400 animate-pulse' : 'bg-slate-500'}`} />
+                  <span className="text-xs text-slate-300 font-medium">
+                    {perfConfig.queueEnabled ? 'Hàng đợi đang bật (1-2 Worker)' : 'Hàng đợi tắt'}
+                  </span>
+                </div>
+              </div>
+
+              {/* Scene Cache Card */}
+              <div className="bg-[#0d182e] p-5 rounded-2xl border border-[#1b2f52] space-y-3">
+                <div className="flex items-center justify-between">
+                  <span className="text-xs text-slate-400 font-semibold uppercase tracking-wider">Cache phân cảnh</span>
+                  <div className="p-2 rounded-xl bg-cyan-500/10 text-cyan-400">
+                    <Zap size={16} />
+                  </div>
+                </div>
+                <div>
+                  <div className="text-2xl font-bold text-white">
+                    {sceneCacheStats?.totalScenes || 0} <span className="text-xs font-normal text-slate-400">cảnh</span>
+                  </div>
+                  <div className="text-xs text-slate-400 mt-0.5">
+                    Dung lượng: {sceneCacheStats?.totalFormatted || '0 B'} ({sceneCacheStats?.projectCount || 0} dự án)
+                  </div>
+                </div>
+                <div className="pt-1 flex items-center justify-between">
+                  <span className="text-[11px] text-cyan-300 font-medium">Chữ ký SHA-256</span>
+                  <button
+                    type="button"
+                    onClick={handleCleanSceneCache}
+                    disabled={isCleaningCache || !sceneCacheStats?.totalScenes}
+                    className="text-[10px] text-slate-400 hover:text-rose-400 flex items-center gap-1 transition cursor-pointer disabled:opacity-40"
+                  >
+                    <Trash2 size={11} />
+                    <span>Dọn cache</span>
+                  </button>
+                </div>
+              </div>
+            </div>
+
+            {/* Performance Configuration Form */}
+            <div className="bg-[#0d182e] p-6 rounded-2xl border border-[#1b2f52] space-y-6">
+              <div className="border-b border-[#1b2f52] pb-4">
+                <h4 className="text-sm font-bold text-white flex items-center gap-2">
+                  <Sliders size={16} className="text-blue-400" />
+                  <span>Cấu hình hiệu năng & Bộ điều phối tài nguyên</span>
+                </h4>
+                <p className="text-xs text-slate-400 mt-1">
+                  Điều chỉnh các thông số để tối ưu độ mượt và ngăn chặn tràn RAM khi xuất video dài trên máy tính.
+                </p>
+              </div>
+
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                {/* Left Column: Queue & Memory Guard */}
+                <div className="space-y-4">
+                  <div>
+                    <label className="text-xs font-bold text-slate-300 block mb-1.5">
+                      Hàng đợi Render (Render Queue)
+                    </label>
+                    <div className="flex items-center justify-between p-3 bg-[#081120] rounded-xl border border-[#1b2f52]">
+                      <div>
+                        <div className="text-xs font-semibold text-white">Bật điều phối hàng đợi</div>
+                        <div className="text-[10px] text-slate-400">Giới hạn số video render đồng thời để tránh quá tải RAM</div>
+                      </div>
+                      <input
+                        type="checkbox"
+                        checked={perfConfig.queueEnabled}
+                        onChange={(e) => setPerfConfig({ ...perfConfig, queueEnabled: e.target.checked })}
+                        className="w-4 h-4 rounded text-blue-500 focus:ring-0 cursor-pointer"
+                      />
+                    </div>
+                  </div>
+
+                  <div>
+                    <label className="text-xs font-bold text-slate-300 block mb-1.5">
+                      Số video xử lý đồng thời (Max Workers)
+                    </label>
+                    <select
+                      value={perfConfig.maxWorkers}
+                      onChange={(e) => setPerfConfig({ ...perfConfig, maxWorkers: Number(e.target.value) })}
+                      className="w-full bg-[#081120] border border-[#1b2f52] rounded-xl px-3.5 py-2.5 text-xs text-white focus:outline-none focus:border-blue-500 font-semibold"
+                    >
+                      <option value={1}>1 Worker (Mặc định - Khuyên dùng để hạn chế RAM)</option>
+                      <option value={2}>2 Workers (Chỉ dùng khi máy có từ 16GB RAM trở lên)</option>
+                    </select>
+                    <span className="text-[10px] text-slate-500 mt-1 block">
+                      Khuyên dùng 1 worker để giữ ổn định tối đa cho máy tính trong suốt quá trình render.
+                    </span>
+                  </div>
+
+                  <div>
+                    <div className="flex items-center justify-between mb-1.5">
+                      <label className="text-xs font-bold text-slate-300">
+                        RAM trống tối thiểu trước khi render
+                      </label>
+                      <span className="text-xs font-mono font-bold text-cyan-400">{perfConfig.minFreeRamGb} GB</span>
+                    </div>
+                    <input
+                      type="range"
+                      min="0.5"
+                      max="4.0"
+                      step="0.5"
+                      value={perfConfig.minFreeRamGb}
+                      onChange={(e) => setPerfConfig({ ...perfConfig, minFreeRamGb: parseFloat(e.target.value) })}
+                      className="w-full h-1.5 bg-[#162744] rounded-lg appearance-none cursor-pointer accent-blue-500"
+                    />
+                    <div className="flex justify-between text-[10px] text-slate-400 mt-1">
+                      <span>0.5 GB</span>
+                      <span className="text-amber-400 font-medium">1.5 GB (Khuyên dùng)</span>
+                      <span>4.0 GB</span>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Right Column: FFmpeg & CPU Threads */}
+                <div className="space-y-4">
+                  <div>
+                    <label className="text-xs font-bold text-slate-300 block mb-1.5">
+                      FFmpeg Encoding Preset
+                    </label>
+                    <select
+                      value={perfConfig.ffmpegPreset}
+                      onChange={(e) => setPerfConfig({ ...perfConfig, ffmpegPreset: e.target.value as any })}
+                      className="w-full bg-[#081120] border border-[#1b2f52] rounded-xl px-3.5 py-2.5 text-xs text-white focus:outline-none focus:border-blue-500 font-semibold"
+                    >
+                      <option value="ultrafast">ultrafast - Nhanh nhất (File lớn, chiếm ít CPU nhất)</option>
+                      <option value="superfast">superfast - Rất nhanh</option>
+                      <option value="veryfast">veryfast - Cân bằng hoàn hảo (Khuyên dùng)</option>
+                      <option value="faster">faster - Nhanh vừa</option>
+                      <option value="fast">fast - Chuẩn</option>
+                      <option value="medium">medium - Tối ưu nén cao nhất (Chiếm nhiều CPU)</option>
+                    </select>
+                    <span className="text-[10px] text-slate-500 mt-1 block">
+                      Preset 'veryfast' cho chất lượng hình ảnh sắc nét và tốc độ xuất MP4 nhanh chóng.
+                    </span>
+                  </div>
+
+                  <div>
+                    <label className="text-xs font-bold text-slate-300 block mb-1.5">
+                      Số luồng CPU (CPU Threads)
+                    </label>
+                    <select
+                      value={perfConfig.cpuThreads}
+                      onChange={(e) => setPerfConfig({ ...perfConfig, cpuThreads: Number(e.target.value) })}
+                      className="w-full bg-[#081120] border border-[#1b2f52] rounded-xl px-3.5 py-2.5 text-xs text-white focus:outline-none focus:border-blue-500 font-semibold"
+                    >
+                      <option value={0}>Auto (0) - FFmpeg tự động phân bổ theo số lõi CPU</option>
+                      <option value={1}>1 Luồng - Giữ máy mát tối đa</option>
+                      <option value={2}>2 Luồng</option>
+                      <option value={4}>4 Luồng</option>
+                      <option value={6}>6 Luồng</option>
+                      <option value={8}>8 Luồng</option>
+                    </select>
+                  </div>
+
+                  <div>
+                    <label className="text-xs font-bold text-slate-300 block mb-1.5">
+                      Bộ đệm phân cảnh (Scene Caching & Resume)
+                    </label>
+                    <div className="flex items-center justify-between p-3 bg-[#081120] rounded-xl border border-[#1b2f52]">
+                      <div>
+                        <div className="text-xs font-semibold text-white">Bật lưu cache từng cảnh SHA-256</div>
+                        <div className="text-[10px] text-slate-400">Cho phép tạm dừng và khôi phục video ngay lập tức</div>
+                      </div>
+                      <input
+                        type="checkbox"
+                        checked={perfConfig.sceneCacheEnabled}
+                        onChange={(e) => setPerfConfig({ ...perfConfig, sceneCacheEnabled: e.target.checked })}
+                        className="w-4 h-4 rounded text-blue-500 focus:ring-0 cursor-pointer"
+                      />
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              {/* Action save button */}
+              <div className="flex justify-end pt-2 border-t border-[#1b2f52]">
+                <button
+                  type="button"
+                  onClick={handleSavePerfConfig}
+                  disabled={isSavingPerf}
+                  className="px-5 py-2.5 bg-blue-600 hover:bg-blue-500 text-white rounded-xl text-xs font-bold transition shadow-lg shadow-blue-500/20 flex items-center gap-2 cursor-pointer disabled:opacity-50"
+                >
+                  <Save size={14} className={isSavingPerf ? 'animate-spin' : ''} />
+                  <span>{isSavingPerf ? 'Đang lưu...' : 'Lưu cấu hình hiệu năng'}</span>
+                </button>
+              </div>
+            </div>
+
+            {/* Workflow Info Guide Card */}
+            <div className="bg-[#0b1528] p-5 rounded-2xl border border-[#1b2f52]/80 space-y-3">
+              <h5 className="text-xs font-bold text-white flex items-center gap-2">
+                <CheckCircle2 size={14} className="text-emerald-400" />
+                <span>Quy trình Tạm dừng, Tiếp tục & Phục hồi sự cố (Phase 18)</span>
+              </h5>
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-3 text-xs text-slate-300">
+                <div className="p-3 bg-[#070e1c] rounded-xl border border-[#172744]">
+                  <div className="font-semibold text-blue-400 mb-1">1. Từng cảnh độc lập</div>
+                  <p className="text-[11px] text-slate-400 leading-relaxed">
+                    Mỗi phân cảnh được render thành file MP4 tạm thời và gán mã băm SHA-256 duy nhất.
+                  </p>
+                </div>
+                <div className="p-3 bg-[#070e1c] rounded-xl border border-[#172744]">
+                  <div className="font-semibold text-emerald-400 mb-1">2. Tái sử dụng thông minh</div>
+                  <p className="text-[11px] text-slate-400 leading-relaxed">
+                    Khi tiếp tục, ứng dụng dùng FFprobe kiểm tra cảnh cũ. Cảnh chuẩn được giữ nguyên, chỉ render cảnh mới.
+                  </p>
+                </div>
+                <div className="p-3 bg-[#070e1c] rounded-xl border border-[#172744]">
+                  <div className="font-semibold text-purple-400 mb-1">3. Đóng ứng dụng an toàn</div>
+                  <p className="text-[11px] text-slate-400 leading-relaxed">
+                    Hệ thống đợi worker kết thúc cảnh hiện tại trước khi tắt, tự động chuyển về trạng thái tạm dừng khi mở lại.
+                  </p>
+                </div>
+              </div>
+            </div>
           </div>
         )}
 

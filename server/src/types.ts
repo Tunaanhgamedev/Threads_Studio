@@ -140,7 +140,7 @@ export interface StudioTemplate {
   subtitleStyle: SubtitleStyleConfig;
 }
 
-export type RenderStatus = 'idle' | 'queued' | 'rendering' | 'completed' | 'failed';
+export type RenderStatus = 'idle' | 'queued' | 'rendering' | 'completed' | 'failed' | 'paused';
 
 export interface RenderJob {
   id: string;
@@ -162,7 +162,7 @@ export interface Project {
   id: string;
   title: string;
   threadsUrl: string;
-  status: 'draft' | 'fetching' | 'fetched' | 'rendering' | 'completed' | 'error';
+  status: 'draft' | 'fetching' | 'fetched' | 'rendering' | 'paused' | 'completed' | 'error';
   createdAt: string;
   updatedAt: string;
   post: ThreadPost;
@@ -800,4 +800,50 @@ export interface ChangeStorageDirResult {
   newDir: string;
   filesCopied: number;
   message: string;
+}
+
+// Phase 18 - Production Readiness & Performance Optimization
+export interface RenderPerformanceConfig {
+  queueEnabled: boolean;
+  maxWorkers: number; // 1 - 2, default 1
+  minFreeRamGb: number; // default 1.5 GB
+  ffmpegPreset: 'ultrafast' | 'superfast' | 'veryfast' | 'faster' | 'fast' | 'medium';
+  cpuThreads: number; // 0 (auto), 1, 2, 4, 6, 8
+  sceneCacheEnabled: boolean;
+  shutdownTimeoutSec: number;
+}
+
+export interface SystemResourceUsage {
+  totalMemBytes: number;
+  totalMemGb: string;
+  freeMemBytes: number;
+  freeMemGb: string;
+  usedMemBytes: number;
+  usedMemGb: string;
+  ramUsagePercent: number;
+  cpuCount: number;
+  cpuModel: string;
+  cpuUsagePercent: number;
+  activeWorkers: number;
+  queuedJobsCount: number;
+  config: RenderPerformanceConfig;
+}
+
+export interface SceneCacheItem {
+  sceneId: string;
+  sceneOrder: number;
+  signature: string;
+  filePath: string;
+  duration: number;
+  fileSize: number;
+  fileSizeFormatted: string;
+  createdAt: string;
+}
+
+export interface SceneCacheStats {
+  totalScenes: number;
+  totalBytes: number;
+  totalFormatted: string;
+  projectCount: number;
+  items: SceneCacheItem[];
 }

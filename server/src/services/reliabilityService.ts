@@ -1,6 +1,7 @@
 import fs from 'fs';
 import path from 'path';
 import crypto from 'crypto';
+import os from 'os';
 import { execFile, execSync } from 'child_process';
 import { promisify } from 'util';
 import { db } from '../db.js';
@@ -13,7 +14,11 @@ import {
   SystemBackupItem,
   CreateBackupDto,
   BackupScheduleConfig,
-  SystemLogEntry
+  SystemLogEntry,
+  RenderPerformanceConfig,
+  SystemResourceUsage,
+  SceneCacheStats,
+  SceneCacheItem
 } from '../types.js';
 
 const execFileAsync = promisify(execFile);
@@ -24,6 +29,7 @@ export class ReliabilityService {
   private backupsDir: string;
   private logsDir: string;
   private tempDir: string;
+  private sceneCacheDir: string;
   private logFilePath: string;
   private scheduleTimer: NodeJS.Timeout | null = null;
 
@@ -32,15 +38,17 @@ export class ReliabilityService {
     this.backupsDir = path.join(this.storageDir, 'backups');
     this.logsDir = path.join(this.storageDir, 'logs');
     this.tempDir = path.join(this.storageDir, 'temp');
+    this.sceneCacheDir = path.join(this.storageDir, 'temp', 'scene_cache');
     this.logFilePath = path.join(this.logsDir, 'system.jsonl');
 
-    [this.backupsDir, this.logsDir, this.tempDir].forEach(dir => {
+    [this.backupsDir, this.logsDir, this.tempDir, this.sceneCacheDir].forEach(dir => {
       if (!fs.existsSync(dir)) {
         fs.mkdirSync(dir, { recursive: true });
       }
     });
 
     this.initScheduleTable();
+    this.initPerformanceConfigTable();
     this.startScheduler();
     this.log('info', 'ReliabilityService', 'Khởi tạo trung tâm Reliability, Security & Backup (Phase 15)');
   }
@@ -1037,5 +1045,294 @@ export class ReliabilityService {
     const sizes = ['B', 'KB', 'MB', 'GB', 'TB'];
     const i = Math.floor(Math.log(bytes) / Math.log(k));
     return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
+  }
+
+  // ==========================================
+  // 6. Phase 18: Render Performance & Scene Caching
+  // ==========================================
+
+  private initPerformanceConfigTable(): void {
+    try {
+      db.exec(`
+        CREATE TABLE IF NOT EXISTS render_performance_configs (
+          id TEXT PRIMARY KEY DEFAULT 'default',
+          queue_enabled INTEGER NOT NULL DEFAULT 1,
+          max_workers INTEGER NOT NULL DEFAULT 1,
+          min_free_ram_gb REAL NOT NULL DEFAULT 1.5,
+          ffmpeg_preset TEXT NOT NULL DEFAULT 'veryfast',
+          cpu_threads INTEGER NOT NULL DEFAULT 0,
+          scene_cache_enabled INTEGER NOT NULL DEFAULT 1,
+          shutdown_timeout_sec INTEGER NOT NULL DEFAULT 300,
+          updated_at TEXT NOT NULL
+        );
+      `);
+
+      const existing = db.prepare("SELECT * FROM render_performance_configs WHERE id = 'default'").get();
+      if (!existing) {
+        const now = new Date().toISOString();
+        db.prepare(`
+          INSERT INTO render_performance_configs (
+            id, queue_enabled, max_workers, min_free_ram_gb, ffmpeg_preset, cpu_threads, scene_cache_enabled, shutdown_timeout_sec, updated_at
+          ) VALUES ('default', 1, 1, 1.5, 'veryfast', 0, 1, 300, ?)
+        `).run(now);
+      }
+    } catch (err) {
+      console.error('[ReliabilityService] Error initializing render performance config table:', err);
+    }
+  }
+
+  public getPerformanceConfig(): RenderPerformanceConfig {
+    try {
+      const row = db.prepare("SELECT * FROM render_performance_configs WHERE id = 'default'").get() as any;
+      if (!row) {
+        return {
+          queueEnabled: true,
+          maxWorkers: 1,
+          minFreeRamGb: 1.5,
+          ffmpegPreset: 'veryfast',
+          cpuThreads: 0,
+          sceneCacheEnabled: true,
+          shutdownTimeoutSec: 300
+        };
+      }
+
+      const validPresets = ['ultrafast', 'superfast', 'veryfast', 'faster', 'fast', 'medium'];
+      return {
+        queueEnabled: Boolean(row.queue_enabled),
+        maxWorkers: Math.max(1, Math.min(2, row.max_workers || 1)),
+        minFreeRamGb: Number(row.min_free_ram_gb || 1.5),
+        ffmpegPreset: (validPresets.includes(row.ffmpeg_preset) ? row.ffmpeg_preset : 'veryfast') as any,
+        cpuThreads: [0, 1, 2, 4, 6, 8].includes(Number(row.cpu_threads)) ? Number(row.cpu_threads) : 0,
+        sceneCacheEnabled: Boolean(row.scene_cache_enabled),
+        shutdownTimeoutSec: Number(row.shutdown_timeout_sec || 300)
+      };
+    } catch (err) {
+      return {
+        queueEnabled: true,
+        maxWorkers: 1,
+        minFreeRamGb: 1.5,
+        ffmpegPreset: 'veryfast',
+        cpuThreads: 0,
+        sceneCacheEnabled: true,
+        shutdownTimeoutSec: 300
+      };
+    }
+  }
+
+  public updatePerformanceConfig(input: Partial<RenderPerformanceConfig>): RenderPerformanceConfig {
+    const current = this.getPerformanceConfig();
+    const queueEnabled = input.queueEnabled !== undefined ? (input.queueEnabled ? 1 : 0) : (current.queueEnabled ? 1 : 0);
+    const maxWorkers = input.maxWorkers !== undefined ? Math.max(1, Math.min(2, Math.round(input.maxWorkers))) : current.maxWorkers;
+    const minFreeRamGb = input.minFreeRamGb !== undefined ? Math.max(0.5, Math.min(16.0, Number(input.minFreeRamGb))) : current.minFreeRamGb;
+    
+    const validPresets = ['ultrafast', 'superfast', 'veryfast', 'faster', 'fast', 'medium'];
+    const ffmpegPreset = (input.ffmpegPreset && validPresets.includes(input.ffmpegPreset)) ? input.ffmpegPreset : current.ffmpegPreset;
+
+    const validThreads = [0, 1, 2, 4, 6, 8];
+    const cpuThreads = (input.cpuThreads !== undefined && validThreads.includes(Number(input.cpuThreads))) ? Number(input.cpuThreads) : current.cpuThreads;
+
+    const sceneCacheEnabled = input.sceneCacheEnabled !== undefined ? (input.sceneCacheEnabled ? 1 : 0) : (current.sceneCacheEnabled ? 1 : 0);
+    const shutdownTimeoutSec = input.shutdownTimeoutSec !== undefined ? Math.max(30, Math.min(600, Number(input.shutdownTimeoutSec))) : current.shutdownTimeoutSec;
+
+    const updatedAt = new Date().toISOString();
+
+    db.prepare(`
+      INSERT INTO render_performance_configs (
+        id, queue_enabled, max_workers, min_free_ram_gb, ffmpeg_preset, cpu_threads, scene_cache_enabled, shutdown_timeout_sec, updated_at
+      ) VALUES ('default', ?, ?, ?, ?, ?, ?, ?, ?)
+      ON CONFLICT(id) DO UPDATE SET
+        queue_enabled = excluded.queue_enabled,
+        max_workers = excluded.max_workers,
+        min_free_ram_gb = excluded.min_free_ram_gb,
+        ffmpeg_preset = excluded.ffmpeg_preset,
+        cpu_threads = excluded.cpu_threads,
+        scene_cache_enabled = excluded.scene_cache_enabled,
+        shutdown_timeout_sec = excluded.shutdown_timeout_sec,
+        updated_at = excluded.updated_at
+    `).run(
+      queueEnabled,
+      maxWorkers,
+      minFreeRamGb,
+      ffmpegPreset,
+      cpuThreads,
+      sceneCacheEnabled,
+      shutdownTimeoutSec,
+      updatedAt
+    );
+
+    this.log(
+      'info',
+      'ReliabilityService',
+      `Cập nhật cấu hình hiệu năng render: Workers=${maxWorkers}, MinRAM=${minFreeRamGb}GB, Preset=${ffmpegPreset}, Threads=${cpuThreads}`
+    );
+
+    return this.getPerformanceConfig();
+  }
+
+  public async getResourceUsage(): Promise<SystemResourceUsage> {
+    const totalMemBytes = os.totalmem();
+    const freeMemBytes = os.freemem();
+    const usedMemBytes = totalMemBytes - freeMemBytes;
+    const ramUsagePercent = Math.round((usedMemBytes / totalMemBytes) * 100);
+
+    const cpus = os.cpus();
+    const cpuCount = cpus.length;
+    const cpuModel = cpus[0]?.model || 'Unknown Processor';
+
+    let cpuUsagePercent = 0;
+    try {
+      let totalIdle = 0;
+      let totalTick = 0;
+      for (const cpu of cpus) {
+        for (const type of Object.keys(cpu.times)) {
+          totalTick += (cpu.times as any)[type];
+        }
+        totalIdle += cpu.times.idle;
+      }
+      const idlePercent = totalTick > 0 ? (totalIdle / totalTick) * 100 : 80;
+      cpuUsagePercent = Math.min(100, Math.max(0, Math.round(100 - idlePercent)));
+    } catch {
+      cpuUsagePercent = 12;
+    }
+
+    let activeWorkers = 0;
+    let queuedJobsCount = 0;
+    try {
+      const activeRow = db.prepare("SELECT COUNT(*) as cnt FROM render_jobs WHERE status = 'rendering'").get() as any;
+      activeWorkers = activeRow?.cnt || 0;
+      const queuedRow = db.prepare("SELECT COUNT(*) as cnt FROM render_jobs WHERE status = 'queued'").get() as any;
+      queuedJobsCount = queuedRow?.cnt || 0;
+    } catch {}
+
+    const config = this.getPerformanceConfig();
+
+    return {
+      totalMemBytes,
+      totalMemGb: (totalMemBytes / (1024 * 1024 * 1024)).toFixed(2) + ' GB',
+      freeMemBytes,
+      freeMemGb: (freeMemBytes / (1024 * 1024 * 1024)).toFixed(2) + ' GB',
+      usedMemBytes,
+      usedMemGb: (usedMemBytes / (1024 * 1024 * 1024)).toFixed(2) + ' GB',
+      ramUsagePercent,
+      cpuCount,
+      cpuModel,
+      cpuUsagePercent,
+      activeWorkers,
+      queuedJobsCount,
+      config
+    };
+  }
+
+  public getSceneCacheStats(): SceneCacheStats {
+    let totalScenes = 0;
+    let totalBytes = 0;
+    const items: SceneCacheItem[] = [];
+    const projectSet = new Set<string>();
+
+    try {
+      if (fs.existsSync(this.sceneCacheDir)) {
+        const projectDirs = fs.readdirSync(this.sceneCacheDir, { withFileTypes: true });
+        for (const pDir of projectDirs) {
+          if (!pDir.isDirectory()) continue;
+          projectSet.add(pDir.name);
+          const pPath = path.join(this.sceneCacheDir, pDir.name);
+          const metaPath = path.join(pPath, 'cache_index.json');
+          let metaData: Record<string, any> = {};
+          if (fs.existsSync(metaPath)) {
+            try {
+              metaData = JSON.parse(fs.readFileSync(metaPath, 'utf8'));
+            } catch {}
+          }
+
+          const files = fs.readdirSync(pPath);
+          for (const file of files) {
+            if (file.endsWith('.mp4')) {
+              const filePath = path.join(pPath, file);
+              const stat = fs.statSync(filePath);
+              totalScenes++;
+              totalBytes += stat.size;
+
+              const metaItem = Object.values(metaData).find((m: any) => m.filename === file) as any;
+              items.push({
+                sceneId: metaItem?.sceneId || file.replace('.mp4', ''),
+                sceneOrder: metaItem?.order || 1,
+                signature: metaItem?.signature || 'N/A',
+                filePath,
+                duration: metaItem?.duration || 0,
+                fileSize: stat.size,
+                fileSizeFormatted: this.formatBytes(stat.size),
+                createdAt: stat.birthtime ? stat.birthtime.toISOString() : new Date().toISOString()
+              });
+            }
+          }
+        }
+      }
+    } catch (err) {
+      console.error('[ReliabilityService] Error getting scene cache stats:', err);
+    }
+
+    return {
+      totalScenes,
+      totalBytes,
+      totalFormatted: this.formatBytes(totalBytes),
+      projectCount: projectSet.size,
+      items
+    };
+  }
+
+  public cleanSceneCache(force: boolean = false): {
+    success: boolean;
+    deletedCount: number;
+    bytesFreed: number;
+    bytesFreedFormatted: string;
+    message: string;
+  } {
+    let deletedCount = 0;
+    let bytesFreed = 0;
+
+    try {
+      if (!fs.existsSync(this.sceneCacheDir)) {
+        return {
+          success: true,
+          deletedCount: 0,
+          bytesFreed: 0,
+          bytesFreedFormatted: '0 B',
+          message: 'Thư mục cache phân cảnh trống.'
+        };
+      }
+
+      const activeRows = db.prepare(`
+        SELECT project_id FROM render_jobs WHERE status IN ('rendering', 'queued')
+      `).all() as Array<{ project_id: string }>;
+      const activeProjectIds = new Set(activeRows.map(r => r.project_id));
+
+      const projectDirs = fs.readdirSync(this.sceneCacheDir, { withFileTypes: true });
+      for (const pDir of projectDirs) {
+        if (!pDir.isDirectory()) continue;
+        if (!force && activeProjectIds.has(pDir.name)) {
+          continue;
+        }
+
+        const pPath = path.join(this.sceneCacheDir, pDir.name);
+        const dirSize = this.getDirSize(pPath);
+        fs.rmSync(pPath, { recursive: true, force: true });
+        bytesFreed += dirSize;
+        deletedCount++;
+      }
+
+      const formatted = this.formatBytes(bytesFreed);
+      this.log('info', 'ReliabilityService', `Dọn dẹp cache phân cảnh: Đã xóa ${deletedCount} thư mục dự án, giải phóng ${formatted}`);
+
+      return {
+        success: true,
+        deletedCount,
+        bytesFreed,
+        bytesFreedFormatted: formatted,
+        message: `Đã dọn dẹp ${deletedCount} cache phân cảnh, giải phóng ${formatted}`
+      };
+    } catch (err: any) {
+      this.log('error', 'ReliabilityService', `Lỗi dọn dẹp cache phân cảnh: ${err.message}`);
+      throw err;
+    }
   }
 }

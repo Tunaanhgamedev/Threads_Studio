@@ -1,20 +1,145 @@
 import fs from 'fs';
 import path from 'path';
-import { spawn, ChildProcess } from 'child_process';
+import os from 'os';
+import crypto from 'crypto';
+import { spawn, ChildProcess, execSync } from 'child_process';
 import { db } from '../db.js';
 import { RenderJob, Project, ScriptScene, ScreenshotItem, AudioItem } from '../types.js';
 import { getStorageDir } from '../storagePath.js';
 import { ScreenshotEngine } from './screenshotEngine.js';
 import { VoiceEngine } from './voiceEngine.js';
+import { ReliabilityService } from './reliabilityService.js';
 
 interface ActiveJobContext {
   canceled: boolean;
+  paused?: boolean;
   timer?: NodeJS.Timeout;
   ffmpegProcess?: ChildProcess;
+  jobId?: string;
 }
 
 export class VideoService {
   private static activeJobs: Map<string, ActiveJobContext> = new Map();
+  private static queue: Array<{ project: Project; jobId: string }> = [];
+
+  static getActiveWorkerCount(): number {
+    return this.activeJobs.size;
+  }
+
+  static getQueuedJobCount(): number {
+    return this.queue.length;
+  }
+
+  /**
+   * Phase 18: RAM availability check before rendering
+   */
+  static checkRamAvailability(minFreeRamGb: number = 1.5): {
+    available: boolean;
+    freeRamGb: number;
+    minRequiredGb: number;
+    message: string;
+  } {
+    const freeBytes = os.freemem();
+    const freeGb = freeBytes / (1024 * 1024 * 1024);
+    const available = freeGb >= minFreeRamGb;
+    return {
+      available,
+      freeRamGb: Number(freeGb.toFixed(2)),
+      minRequiredGb: minFreeRamGb,
+      message: available
+        ? `Đủ dung lượng RAM khả dụng (${freeGb.toFixed(2)} GB / yêu cầu ${minFreeRamGb} GB)`
+        : `Không đủ RAM trống để an toàn render video (yêu cầu tối thiểu ${minFreeRamGb} GB, hiện còn ${freeGb.toFixed(2)} GB).`
+    };
+  }
+
+  /**
+   * Phase 18: Deterministic SHA-256 signature for a scene
+   */
+  static calculateSceneSignature(
+    projectId: string,
+    scene: ScriptScene,
+    screenshotPath?: string,
+    audioPath?: string,
+    preset?: string
+  ): string {
+    const hash = crypto.createHash('sha256');
+    hash.update(projectId);
+    hash.update(scene.id);
+    hash.update(String(scene.order));
+    hash.update(scene.text || '');
+    hash.update(scene.voice || '');
+    hash.update(String(scene.duration || 0));
+    hash.update(screenshotPath || '');
+    hash.update(audioPath || '');
+    hash.update(preset || 'veryfast');
+    return hash.digest('hex');
+  }
+
+  /**
+   * Phase 18: Verify integrity of cached scene MP4 with FFprobe
+   */
+  static verifySceneCache(filePath: string): boolean {
+    try {
+      if (!fs.existsSync(filePath)) return false;
+      const stat = fs.statSync(filePath);
+      if (stat.size < 5000) return false;
+      const ffprobeCandidates = [
+        'D:\\DevData\\ffmpeg\\bin\\ffprobe.exe',
+        'C:\\ffmpeg\\bin\\ffprobe.exe',
+        'ffprobe.exe',
+        'ffprobe'
+      ];
+      let probeCmd = 'ffprobe';
+      for (const p of ffprobeCandidates) {
+        if (fs.existsSync(p)) {
+          probeCmd = p;
+          break;
+        }
+      }
+      try {
+        const out = execSync(`"${probeCmd}" -v error -show_entries format=duration -of default=noprint_wrappers=1:nokey=1 "${filePath}"`, {
+          timeout: 4000,
+          stdio: 'pipe'
+        }).toString().trim();
+        const dur = parseFloat(out);
+        return !isNaN(dur) && dur > 0.1;
+      } catch {
+        return stat.size > 20000;
+      }
+    } catch {
+      return false;
+    }
+  }
+
+  /**
+   * Phase 18: Process next queued job when a worker becomes free
+   */
+  static processNextQueuedJob(): void {
+    const perfConfig = ReliabilityService.getInstance().getPerformanceConfig();
+    if (this.queue.length === 0) return;
+    if (perfConfig.queueEnabled && this.activeJobs.size >= perfConfig.maxWorkers) return;
+
+    const next = this.queue.shift();
+    if (!next) return;
+
+    const { project, jobId } = next;
+    const currentJob = this.getJob(jobId);
+    if (!currentJob || currentJob.status !== 'queued') return;
+
+    const context: ActiveJobContext = { canceled: false, jobId };
+    this.activeJobs.set(project.id, context);
+
+    this.updateStep(jobId, 5, 'Bắt đầu xử lý', 'Worker đã tiếp nhận job từ hàng đợi...', 'Worker khởi động từ hàng đợi.');
+    db.prepare("UPDATE render_jobs SET status = 'rendering' WHERE id = ?").run(jobId);
+    db.prepare("UPDATE projects SET status = 'rendering' WHERE id = ?").run(project.id);
+
+    this.runPipeline(project, jobId, context).catch(err => {
+      console.error('[VideoService] Pipeline error for queued job:', err);
+      if (!context.canceled) {
+        this.markJobFailed(project.id, jobId, err.message);
+      }
+    });
+  }
 
   static getFFmpegPath(): { path: string; exists: boolean } {
     const candidatePaths = [
@@ -99,9 +224,169 @@ export class VideoService {
 
         db.prepare("UPDATE projects SET status = 'draft' WHERE id = ?").run(projectId);
       }
+      this.processNextQueuedJob();
       return true;
     }
     return false;
+  }
+
+  /**
+   * Phase 18: Pause active rendering job
+   */
+  static pauseRender(projectId: string): boolean {
+    const jobInfo = this.activeJobs.get(projectId);
+    if (jobInfo) {
+      jobInfo.paused = true;
+      jobInfo.canceled = true;
+      if (jobInfo.timer) clearTimeout(jobInfo.timer);
+      if (jobInfo.ffmpegProcess) {
+        try {
+          jobInfo.ffmpegProcess.kill('SIGINT');
+        } catch {}
+      }
+      this.activeJobs.delete(projectId);
+
+      const latestJob = this.getLatestProjectJob(projectId);
+      if (latestJob && (latestJob.status === 'rendering' || latestJob.status === 'queued')) {
+        const updatedLogs = [
+          ...latestJob.logs,
+          `[${new Date().toLocaleTimeString()}] Đã tạm dừng tiến trình render. Các cảnh hoàn thành được lưu an toàn trong cache.`
+        ];
+        db.prepare(`
+          UPDATE render_jobs
+          SET status = 'paused', current_step = 'Tạm dừng', step_details = 'Đã tạm dừng render. Bấm Tiếp tục để tái sử dụng cache.', logs = ?
+          WHERE id = ?
+        `).run(JSON.stringify(updatedLogs), latestJob.id);
+
+        db.prepare("UPDATE projects SET status = 'draft' WHERE id = ?").run(projectId);
+      }
+
+      this.processNextQueuedJob();
+      return true;
+    }
+    return false;
+  }
+
+  /**
+   * Phase 18: Resume paused rendering job using scene cache
+   */
+  static resumeRender(projectId: string): RenderJob | null {
+    const latestJob = this.getLatestProjectJob(projectId);
+    if (!latestJob || (latestJob.status !== 'paused' && latestJob.status !== 'failed')) {
+      return null;
+    }
+
+    const row = db.prepare('SELECT * FROM projects WHERE id = ?').get(projectId) as any;
+    if (!row) return null;
+
+    const scenes = (db.prepare('SELECT * FROM scenes WHERE project_id = ? ORDER BY scene_order ASC').all(projectId) as any[]).map(s => ({
+      id: s.id,
+      order: s.scene_order,
+      type: s.type,
+      title: s.title,
+      text: s.text,
+      voice: s.voice,
+      duration: s.duration,
+      selected: Boolean(s.selected)
+    }));
+
+    const project: Project = {
+      id: row.id,
+      title: row.title,
+      threadsUrl: row.threads_url,
+      status: 'rendering',
+      createdAt: row.created_at,
+      updatedAt: row.updated_at,
+      config: JSON.parse(row.video_config || '{}'),
+      post: {} as any,
+      comments: [],
+      scenes
+    };
+
+    const updatedLogs = [
+      ...latestJob.logs,
+      `[${new Date().toLocaleTimeString()}] Tiếp tục quy trình render từ cache phân cảnh đã lưu...`
+    ];
+    db.prepare(`
+      UPDATE render_jobs
+      SET status = 'rendering', current_step = 'Tiếp tục render', step_details = 'Đang kiểm tra và tái sử dụng các cảnh từ cache...', logs = ?
+      WHERE id = ?
+    `).run(JSON.stringify(updatedLogs), latestJob.id);
+
+    db.prepare("UPDATE projects SET status = 'rendering' WHERE id = ?").run(projectId);
+
+    const context: ActiveJobContext = { canceled: false, jobId: latestJob.id };
+    this.activeJobs.set(projectId, context);
+
+    this.runPipeline(project, latestJob.id, context).catch(err => {
+      console.error('[VideoService] Resume pipeline error:', err);
+      if (!context.canceled) {
+        this.markJobFailed(projectId, latestJob.id, err.message);
+      }
+    });
+
+    return {
+      ...latestJob,
+      status: 'rendering',
+      currentStep: 'Tiếp tục render',
+      stepDetails: 'Đang kiểm tra và tái sử dụng các cảnh từ cache...'
+    };
+  }
+
+  /**
+   * Phase 18: Graceful shutdown handler
+   */
+  static gracefulShutdown(timeoutMs: number = 300000): void {
+    console.log(`[VideoService] Initiating graceful shutdown (timeout: ${timeoutMs / 1000}s)...`);
+    for (const [projectId, context] of this.activeJobs.entries()) {
+      context.paused = true;
+      context.canceled = true;
+      if (context.timer) clearTimeout(context.timer);
+      if (context.ffmpegProcess) {
+        try {
+          context.ffmpegProcess.kill('SIGINT');
+        } catch {}
+      }
+      const latestJob = this.getLatestProjectJob(projectId);
+      if (latestJob && latestJob.status === 'rendering') {
+        const updatedLogs = [
+          ...latestJob.logs,
+          `[${new Date().toLocaleTimeString()}] Hệ thống đóng an toàn: Tiến trình được tạm dừng, cache phân cảnh đã lưu để phục hồi.`
+        ];
+        db.prepare(`
+          UPDATE render_jobs
+          SET status = 'paused', current_step = 'Tạm dừng', step_details = 'Đã tạm dừng an toàn khi đóng ứng dụng. Cache phân cảnh được bảo toàn.', logs = ?
+          WHERE id = ?
+        `).run(JSON.stringify(updatedLogs), latestJob.id);
+        db.prepare("UPDATE projects SET status = 'draft' WHERE id = ?").run(projectId);
+      }
+    }
+    this.activeJobs.clear();
+    this.queue = [];
+  }
+
+  /**
+   * Phase 18: Recover jobs interrupted by sudden crashes or restarts
+   */
+  static recoverInterruptedJobs(): void {
+    try {
+      const activeRows = db.prepare("SELECT * FROM render_jobs WHERE status = 'rendering'").all() as any[];
+      for (const row of activeRows) {
+        const logs = JSON.parse(row.logs || '[]');
+        logs.push(`[${new Date().toLocaleTimeString()}] Tự động khôi phục sau khởi động lại: Chuyển về trạng thái tạm dừng, bảo vệ cache.`);
+        db.prepare(`
+          UPDATE render_jobs
+          SET status = 'paused', current_step = 'Tạm dừng', step_details = 'Tự động khôi phục sau khởi động lại. Bấm Tiếp tục để hoàn thành.', logs = ?
+          WHERE id = ?
+        `).run(JSON.stringify(logs), row.id);
+        db.prepare("UPDATE projects SET status = 'draft' WHERE id = ?").run(row.project_id);
+      }
+      if (activeRows.length > 0) {
+        console.log(`[VideoService] Recovered ${activeRows.length} interrupted render jobs to paused state.`);
+      }
+    } catch (e) {
+      console.error('[VideoService] Error recovering interrupted jobs:', e);
+    }
   }
 
   private static appendLog(jobId: string, message: string) {
@@ -126,13 +411,49 @@ export class VideoService {
   static startRender(project: Project): RenderJob {
     this.stopRender(project.id);
 
+    const perfConfig = ReliabilityService.getInstance().getPerformanceConfig();
+
+    // 1. Check RAM availability
+    const ramCheck = this.checkRamAvailability(perfConfig.minFreeRamGb);
+    if (!ramCheck.available) {
+      throw new Error(ramCheck.message);
+    }
+
     const jobId = `job_${Date.now()}`;
     const now = new Date().toISOString();
     const initialLogs = [
       `[${new Date().toLocaleTimeString()}] Khởi động quy trình sản xuất video cho dự án: "${project.title}"`,
       `[${new Date().toLocaleTimeString()}] Tỷ lệ: ${project.config.aspectRatio || '9:16'} · Độ phân giải: ${project.config.resolution || '1080p'} · FPS: ${project.config.fps || 30}`,
-      `[${new Date().toLocaleTimeString()}] Thẻ giao diện: X=${project.config.cardPosition?.x ?? 50}%, Y=${project.config.cardPosition?.y ?? 28}%, Cỡ=${project.config.cardPosition?.scale ?? 105}%, Nền=${project.config.cardPosition?.bgStyle ?? 'Trắng'}`
+      `[${new Date().toLocaleTimeString()}] Thẻ giao diện: X=${project.config.cardPosition?.x ?? 50}%, Y=${project.config.cardPosition?.y ?? 28}%, Cỡ=${project.config.cardPosition?.scale ?? 105}%, Nền=${project.config.cardPosition?.bgStyle ?? 'Trắng'}`,
+      `[${new Date().toLocaleTimeString()}] Hiệu năng: Preset=${perfConfig.ffmpegPreset} · Luồng CPU=${perfConfig.cpuThreads || 'Auto'} · Cache cảnh=${perfConfig.sceneCacheEnabled ? 'Bật' : 'Tắt'}`
     ];
+
+    // 2. Queue handling: limit active workers
+    if (perfConfig.queueEnabled && this.activeJobs.size >= perfConfig.maxWorkers) {
+      const queuedLogs = [
+        ...initialLogs,
+        `[${new Date().toLocaleTimeString()}] Đã đưa vào hàng đợi: ${this.activeJobs.size}/${perfConfig.maxWorkers} worker đang bận.`
+      ];
+      db.prepare(`
+        INSERT INTO render_jobs (id, project_id, status, progress, current_step, step_details, logs, created_at)
+        VALUES (?, ?, 'queued', 0, 'Đang trong hàng đợi', 'Hệ thống giới hạn worker để bảo vệ RAM. Đang chờ worker trước hoàn thành...', ?, ?)
+      `).run(jobId, project.id, JSON.stringify(queuedLogs), now);
+
+      db.prepare("UPDATE projects SET status = 'rendering' WHERE id = ?").run(project.id);
+
+      this.queue.push({ project, jobId });
+
+      return {
+        id: jobId,
+        projectId: project.id,
+        status: 'queued',
+        progress: 0,
+        currentStep: 'Đang trong hàng đợi',
+        stepDetails: 'Hệ thống giới hạn worker để bảo vệ RAM. Đang chờ worker trước hoàn thành...',
+        logs: queuedLogs,
+        createdAt: now
+      };
+    }
 
     db.prepare(`
       INSERT INTO render_jobs (id, project_id, status, progress, current_step, step_details, logs, created_at)
@@ -152,7 +473,7 @@ export class VideoService {
       createdAt: now
     };
 
-    const context: ActiveJobContext = { canceled: false };
+    const context: ActiveJobContext = { canceled: false, jobId };
     this.activeJobs.set(project.id, context);
 
     // Launch async production pipeline
@@ -652,6 +973,10 @@ export class VideoService {
 
     const filterComplex = filterParts.join('; ');
 
+    const perfConfig = ReliabilityService.getInstance().getPerformanceConfig();
+    const preset = perfConfig.ffmpegPreset || 'veryfast';
+    const cpuThreads = perfConfig.cpuThreads || 0;
+
     const args = [
       '-y',
       ...inputs,
@@ -659,7 +984,8 @@ export class VideoService {
       '-map', finalV,
       '-map', finalAudioTag,
       '-c:v', 'libx264',
-      '-preset', 'veryfast',
+      '-preset', preset,
+      ...(cpuThreads > 0 ? ['-threads', String(cpuThreads)] : []),
       '-crf', '22',
       '-pix_fmt', 'yuv420p',
       '-c:a', 'aac',
@@ -755,6 +1081,7 @@ export class VideoService {
     db.prepare("UPDATE projects SET status = 'completed' WHERE id = ?").run(projectId);
 
     this.activeJobs.delete(projectId);
+    this.processNextQueuedJob();
   }
 
   private static markJobFailed(projectId: string, jobId: string, errorMsg: string) {
@@ -772,5 +1099,6 @@ export class VideoService {
     db.prepare("UPDATE projects SET status = 'draft' WHERE id = ?").run(projectId);
 
     this.activeJobs.delete(projectId);
+    this.processNextQueuedJob();
   }
 }

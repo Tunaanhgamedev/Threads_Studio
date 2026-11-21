@@ -654,6 +654,29 @@ router.post('/:id/stop-render', (req, res) => {
   }
 });
 
+// POST /api/projects/:id/pause-render - Phase 18 pause render
+router.post('/:id/pause-render', (req, res) => {
+  try {
+    const paused = VideoService.pauseRender(req.params.id);
+    res.json({ success: true, paused });
+  } catch (err: any) {
+    res.status(500).json({ success: false, error: err.message });
+  }
+});
+
+// POST /api/projects/:id/resume-render - Phase 18 resume render
+router.post('/:id/resume-render', (req, res) => {
+  try {
+    const job = VideoService.resumeRender(req.params.id);
+    if (!job) {
+      return res.status(400).json({ success: false, error: 'Không tìm thấy tiến trình tạm dừng để tiếp tục.' });
+    }
+    res.json({ success: true, job });
+  } catch (err: any) {
+    res.status(500).json({ success: false, error: err.message });
+  }
+});
+
 // GET /api/projects/:id/render-status - check render status
 router.get('/:id/render-status', (req, res) => {
   try {

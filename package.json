@@ -1,8 +1,8 @@
 {
   "name": "threads-content-studio",
-  "version": "0.17.0",
+  "version": "0.18.0",
   "private": true,
-  "description": "Threads Content Studio - Tự động hóa sản xuất video từ nội dung Threads (Automated Testing & Release Edition)",
+  "description": "Threads Content Studio - Tự động hóa sản xuất video từ nội dung Threads (Production Readiness & Performance Optimization Edition)",
   "scripts": {
     "dev": "concurrently -n \"SERVER,CLIENT\" -c \"blue,green\" \"pnpm --filter threads-studio-server dev\" \"pnpm --filter threads-studio-client dev\"",
     "dev:desktop": "concurrently -n \"SERVER,CLIENT,DESKTOP\" -c \"blue,green,magenta\" \"pnpm --filter threads-studio-server dev\" \"pnpm --filter threads-studio-client dev\" \"pnpm --filter threads-studio-desktop dev\"",

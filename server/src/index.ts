@@ -21,6 +21,7 @@ import { reliabilityRouter } from './routes/reliability.js';
 import { desktopRouter } from './routes/desktop.js';
 import { ThreadsApiService } from './services/threadsApiService.js';
 import { DiscoveryService } from './services/discoveryService.js';
+import { VideoService } from './services/videoService.js';
 import { getStorageDir } from './storagePath.js';
 
 export const app = express();
@@ -94,11 +95,26 @@ if (fs.existsSync(clientDistDir)) {
 }
 
 if (process.env.NODE_ENV !== 'test') {
-  app.listen(PORT, '127.0.0.1', () => {
+  const server = app.listen(PORT, '127.0.0.1', () => {
     console.log(`[Threads Content Studio Server] Running on http://127.0.0.1:${PORT}`);
+    // Phase 18: Auto-recover interrupted jobs from crash/restart
+    VideoService.recoverInterruptedJobs();
     // Start Phase 8 background sync scheduler
     ThreadsApiService.initScheduledSync();
     // Start Phase 9 background discovery cron
     DiscoveryService.initDiscoveryCron();
   });
+
+  const handleShutdown = (signal: string) => {
+    console.log(`[Server] Received ${signal}, executing graceful shutdown...`);
+    VideoService.gracefulShutdown();
+    server.close(() => {
+      console.log('[Server] Closed successfully.');
+      process.exit(0);
+    });
+    setTimeout(() => process.exit(0), 10000).unref();
+  };
+
+  process.on('SIGINT', () => handleShutdown('SIGINT'));
+  process.on('SIGTERM', () => handleShutdown('SIGTERM'));
 }

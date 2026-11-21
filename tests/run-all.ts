@@ -19,8 +19,8 @@ function runStep(name: string, scriptPath: string) {
   }
 }
 
-// 1. Unit Tests (16 tests)
-runStep('16/16 Unit Tests', 'tests/unit/index.ts');
+// 1. Unit Tests (20 tests)
+runStep('20/20 Unit Tests', 'tests/unit/index.ts');
 
 // 2. Media Test (FFmpeg / FFprobe)
 runStep('FFmpeg/FFprobe Media Test', 'tests/media/ffmpegSmoke.test.ts');

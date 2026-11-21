@@ -1,6 +1,6 @@
 {
   "name": "threads-studio-desktop",
-  "version": "0.16.0",
+  "version": "0.18.0",
   "private": true,
   "description": "Threads Content Studio Desktop Shell for Windows",
   "main": "dist/main.js",

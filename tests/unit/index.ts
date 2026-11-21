@@ -3,3 +3,4 @@ import './filePathProtection.test.js';
 import './threadsUrl.test.js';
 import './subtitles.test.js';
 import './secretRedaction.test.js';
+import './performanceOptimization.test.js';

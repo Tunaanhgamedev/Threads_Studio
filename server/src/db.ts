@@ -401,6 +401,18 @@ db.exec(`
     next_run_at TEXT,
     updated_at TEXT NOT NULL
   );
+
+  CREATE TABLE IF NOT EXISTS render_performance_configs (
+    id TEXT PRIMARY KEY DEFAULT 'default',
+    queue_enabled INTEGER NOT NULL DEFAULT 1,
+    max_workers INTEGER NOT NULL DEFAULT 1,
+    min_free_ram_gb REAL NOT NULL DEFAULT 1.5,
+    ffmpeg_preset TEXT NOT NULL DEFAULT 'veryfast',
+    cpu_threads INTEGER NOT NULL DEFAULT 0,
+    scene_cache_enabled INTEGER NOT NULL DEFAULT 1,
+    shutdown_timeout_sec INTEGER NOT NULL DEFAULT 300,
+    updated_at TEXT NOT NULL
+  );
 `);
 
 // Migrations for Phase 14 - Multi-Channel Management

@@ -33,7 +33,11 @@ import {
   SystemLogEntry,
   DesktopStatus,
   DesktopServicesStatus,
-  ChangeStorageDirResult
+  ChangeStorageDirResult,
+  RenderPerformanceConfig,
+  SystemResourceUsage,
+  SceneCacheStats,
+  SceneCacheItem
 } from '../types';
 
 const API_BASE = '/api';
@@ -1094,5 +1098,56 @@ export const api = {
     });
     if (!data.success) throw new Error(data.error);
     return data;
+  },
+
+  // ==================== Phase 18: Production Readiness & Performance Optimization ====================
+  async getRenderPerformance(): Promise<SystemResourceUsage> {
+    const data = await fetchJson<{ success: boolean; data: SystemResourceUsage; error?: string }>(`${API_BASE}/reliability/performance`);
+    if (!data.success) throw new Error(data.error);
+    return data.data;
+  },
+
+  async updateRenderPerformanceConfig(config: Partial<RenderPerformanceConfig>): Promise<RenderPerformanceConfig> {
+    const data = await fetchJson<{ success: boolean; data: RenderPerformanceConfig; error?: string }>(`${API_BASE}/reliability/performance`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(config)
+    });
+    if (!data.success) throw new Error(data.error);
+    return data.data;
+  },
+
+  async pauseRenderJob(projectId: string): Promise<boolean> {
+    const data = await fetchJson<{ success: boolean; data: { paused: boolean; message: string }; error?: string }>(`${API_BASE}/reliability/render/pause`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ projectId })
+    });
+    if (!data.success) throw new Error(data.error);
+    return data.data.paused;
+  },
+
+  async resumeRenderJob(projectId: string): Promise<RenderJob> {
+    const data = await fetchJson<{ success: boolean; data: RenderJob; error?: string }>(`${API_BASE}/reliability/render/resume`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ projectId })
+    });
+    if (!data.success) throw new Error(data.error);
+    return data.data;
+  },
+
+  async getSceneCacheStats(): Promise<SceneCacheStats> {
+    const data = await fetchJson<{ success: boolean; data: SceneCacheStats; error?: string }>(`${API_BASE}/reliability/render/cache`);
+    if (!data.success) throw new Error(data.error);
+    return data.data;
+  },
+
+  async cleanSceneCache(force: boolean = false): Promise<{ success: boolean; deletedCount: number; bytesFreed: number; bytesFreedFormatted: string; message: string }> {
+    const data = await fetchJson<{ success: boolean; data: any; error?: string }>(`${API_BASE}/reliability/render/cache?force=${force}`, {
+      method: 'DELETE'
+    });
+    if (!data.success) throw new Error(data.error);
+    return data.data;
   }
 };
